@@ -31,15 +31,14 @@ export function eventFormHTML({ submitLabel = "Submit for review" } = {}) {
       <select id="ef-cat" name="category">${cats}</select>
     </div>
 
-    <div class="row2">
-      <div class="field">
-        <label for="ef-date">Date</label>
-        <input id="ef-date" name="date" type="date" required min="${todayStr()}">
-      </div>
-      <div class="field">
-        <label for="ef-time">Start time</label>
-        <select id="ef-time" name="time" required>${times}</select>
-      </div>
+    <div class="field">
+      <label for="ef-date">Date</label>
+      <input id="ef-date" name="date" type="date" required min="${todayStr()}">
+    </div>
+
+    <div class="field">
+      <label for="ef-time">Start time</label>
+      <select id="ef-time" name="time" required>${times}</select>
     </div>
 
     <div class="field">
