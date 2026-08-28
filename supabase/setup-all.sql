@@ -56,7 +56,7 @@ on conflict (user_id) do nothing;
 -- Deletes its own rows first, so re-running this file never duplicates them.
 -- Times/venues are best-effort — verify each and fix from admin -> Live.
 delete from public.events where title in (
-  'Casa Beer Run','Stellenbosch Coffee Run','Aandklas Quiz Night','De Warenmarkt Quiz',
+  'Casa Beer Run','Stellenbosch Coffee Run','Stellies Shakeout Trail Run','Aandklas Quiz Night','De Warenmarkt Quiz',
   'The Courtyard Cafe Quiz','Versus Friday Run','Tuesday Time Trial','Blaauwklippen Family Market',
   'Stellenbosch Slow Market','ClubPadel Social','Live Music at Daisy Jones','First Thursdays Stellenbosch',
   'Run the Bosch Trail Run','The Gratitude Run','Christmas Lights Switch-On & Night Market','Stellenbosch Woordfees',
@@ -75,9 +75,15 @@ values
   'approved', now(),'3e2e5f4e-5141-4408-8970-48ca6f86dd8c'),
 
 ('3e2e5f4e-5141-4408-8970-48ca6f86dd8c','Stellenbosch Coffee Run','Sport',
-  timezone('Africa/Johannesburg', (current_date + ((6 - extract(isodow from current_date)::int + 7) % 7)) + time '07:30'),
-  null,'weekly','The Braak (meeting point)',null,'Free',
-  'Easy 5 km at conversation pace, then coffee and bagels at the finish. This week''s route is posted on @stb_coffee_run.',
+  timezone('Africa/Johannesburg', (current_date + ((3 - extract(isodow from current_date)::int + 7) % 7)) + time '17:00'),
+  '17:00 for a 17:15 start','weekly','Sox / Mood Cafe (cnr Andringa & Dorp)',null,'Free',
+  'Casual 5 km at conversation pace, then coffee and bagels at the finish. All paces welcome. Route on @stb_coffee_run.',
+  'approved', now(),'3e2e5f4e-5141-4408-8970-48ca6f86dd8c'),
+
+('3e2e5f4e-5141-4408-8970-48ca6f86dd8c','Stellies Shakeout Trail Run','Sport',
+  timezone('Africa/Johannesburg', (current_date + ((4 - extract(isodow from current_date)::int + 7) % 7)) + time '18:00'),
+  null,'weekly','Coetzenburg (meet at the track)',null,'Free',
+  'Social trail run with the SSO crew — four pace groups so no one gets dropped. Free to join, everyone welcome. @stelliesshakeout.',
   'approved', now(),'3e2e5f4e-5141-4408-8970-48ca6f86dd8c'),
 
 ('3e2e5f4e-5141-4408-8970-48ca6f86dd8c','Aandklas Quiz Night','Nightlife',

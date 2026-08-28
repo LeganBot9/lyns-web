@@ -1,6 +1,7 @@
 import { sb } from "./supabase.js";
 import { esc, coverFor, whenLabel, whenShort, recurTag } from "./ui.js";
 import { eventFormHTML, bindEventForm, readEventForm, uploadCover } from "./eventform.js";
+import { uploadImage } from "./photo.js";
 
 const view = document.getElementById("view");
 const nav = document.getElementById("adminNav");
@@ -158,12 +159,31 @@ async function renderLive() {
     <div class="qitem" data-ev="${esc(ev.id)}">
       <img src="${coverFor(ev)}" alt="">
       <div>
-        <div class="q-cat">${esc(ev.category)}${recurTag(ev) ? " &middot; " + recurTag(ev) : ""} <span class="q-live">live</span></div>
+        <div class="q-cat">${esc(ev.category)}${recurTag(ev) ? " &middot; " + recurTag(ev) : ""} <span class="q-live">live</span>${ev.image_url ? "" : " &middot; auto cover"}</div>
         <div class="q-title">${esc(ev.title)}</div>
         <div class="q-meta">${esc(whenShort(ev))} &middot; ${esc(ev.venue)}</div>
       </div>
-      <div class="q-actions"><button class="btn line mini" data-act="ev-archive">Take down</button></div>
+      <div class="q-actions">
+        <button class="btn line mini" data-act="ev-photo">${ev.image_url ? "Change photo" : "Add photo"}</button>
+        <button class="btn line mini" data-act="ev-archive">Take down</button>
+        <input type="file" class="visually-hidden ev-photo-input" accept="image/png,image/jpeg,image/webp">
+      </div>
     </div>`).join("")}</div>`;
+
+  box.querySelectorAll(".ev-photo-input").forEach((input) => {
+    input.addEventListener("change", async () => {
+      const file = input.files[0];
+      if (!file) return;
+      const id = input.closest("[data-ev]").dataset.ev;
+      flash("Uploading photo…");
+      const url = await uploadImage(sb, "event-images", file, state.user.id, "cover-");
+      if (!url) { flash("Upload failed"); return; }
+      const { error: e2 } = await sb.from("events").update({ image_url: url }).eq("id", id);
+      if (e2) { flash(e2.message); return; }
+      flash("Photo updated");
+      renderLive();
+    });
+  });
 }
 
 function renderAdd() {
@@ -214,6 +234,12 @@ view.addEventListener("click", async (e) => {
   if (!b) return;
   const act = b.dataset.act;
   const row = b.closest("[data-ev],[data-org]");
+
+  if (act === "ev-photo") {
+    row.querySelector(".ev-photo-input").click();
+    return;
+  }
+
   b.disabled = true;
   try {
     if (act === "org-approve" || act === "org-decline" || act === "org-suspend") {
