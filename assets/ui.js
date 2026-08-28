@@ -7,12 +7,19 @@ export const CATS_WITH_ALL = ["All", ...CATS];
 
 // Stellenbosch University residences — a suggestion list, organisers can type any.
 export const RESIDENCES = [
-  "Wilgenhof", "Dagbreek", "Helshoogte", "Simonsberg", "Eendrag", "Huis Marais",
-  "Majuba", "Helderberg", "Pieke", "Wilcocks", "Huis Visser", "Huis McDonald",
-  "Minerva", "Harmonie", "Monica", "Nemesia", "Huis ten Bosch", "Serruria",
-  "Heemstede", "Sonop", "Irene", "Lydia", "Nerina", "Silene",
-  "Concordia", "Academia", "Metanoia", "Hippokrates", "Venustia", "Osler",
-  "PSO / private residence",
+  // men's
+  "Dagbreek", "Eendrag", "Helderberg", "Helshoogte", "Huis Marais", "Huis Visser",
+  "Majuba", "Pieke", "Simonsberg", "Wilgenhof",
+  // women's
+  "Harmonie", "Heemstede", "Huis Neethling", "Huis ten Bosch", "Irene", "Lydia",
+  "Minerva", "Monica", "Nemesia", "Serruria", "Sonop",
+  // co-ed
+  "Academia", "Concordia", "Goldfields", "Huis McDonald", "Metanoia", "Nerina",
+  "Russel Botman House", "Silene", "Venustia",
+  // Tygerberg campus
+  "Hippokrates", "Meerhoff", "Osler",
+  // catch-all
+  "PSO / day residence",
 ].sort();
 
 const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];

@@ -107,9 +107,21 @@ body{
 .hero h1 em{font-style:italic;color:var(--navy)}
 .hero p{margin-top:12px;color:var(--muted);font-size:13.5px}
 
-/* ---- chips ---- */
-.chips{display:flex;gap:8px;overflow-x:auto;padding:12px 22px;scrollbar-width:none;
-  position:sticky;top:0;z-index:5;background:var(--paper);border-bottom:1px solid var(--line)}
+/* ---- search + chips (sticky filter bar) ---- */
+.filterbar{position:sticky;top:0;z-index:5;background:var(--paper);border-bottom:1px solid var(--line)}
+.searchrow{display:flex;align-items:center;gap:9px;padding:12px 22px 0;color:var(--muted)}
+.searchrow svg{flex:0 0 auto}
+.searchrow input{
+  flex:1 1 auto;min-width:0;font:inherit;font-size:15px;color:var(--ink);
+  background:var(--recess);border:1px solid var(--line);border-radius:999px;
+  padding:10px 14px;-webkit-appearance:none;appearance:none}
+.searchrow input::-webkit-search-cancel-button{-webkit-appearance:none}
+.searchrow input::placeholder{color:var(--muted)}
+.searchrow #searchClear{flex:0 0 auto;background:none;border:0;cursor:pointer;
+  color:var(--muted);font-size:20px;line-height:1;padding:0 4px}
+.searchrow #searchClear:hover{color:var(--ink)}
+
+.chips{display:flex;gap:8px;overflow-x:auto;padding:12px 22px;scrollbar-width:none}
 .chips::-webkit-scrollbar{display:none}
 .chip{
   flex:0 0 auto;border:1px solid var(--line);background:var(--paper);

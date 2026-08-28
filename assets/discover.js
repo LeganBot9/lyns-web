@@ -26,9 +26,10 @@ function setSaved(a) {
   try { localStorage.setItem("lyns.saved", JSON.stringify(a)); } catch {}
 }
 
-const state = { tab: "discover", cat: "All", date: null, residence: null, open: null, events: [] };
+const state = { tab: "discover", cat: "All", date: null, residence: null, q: "", open: null, events: [] };
 
 const ICON_CAL = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9h18M8 2.5v4M16 2.5v4"/></svg>`;
+const ICON_MAG = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>`;
 const ICON_SEARCH = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>`;
 const ICON_BKM = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M6 4h12v16l-6-4-6 4z"/></svg>`;
 
@@ -61,21 +62,57 @@ async function loadEvents() {
   return (data || []).sort((a, b) => effectiveStart(a) - effectiveStart(b));
 }
 
-function renderDiscover() {
-  const savedIds = new Set(getSaved().map((e) => e.id));
-  const onDate = state.date ? new Date(state.date + "T00:00:00") : null;
-  const residences = [...new Set(state.events.map((e) => e.residence).filter(Boolean))].sort();
-  if (state.residence && !residences.includes(state.residence)) state.residence = null;
-
+function filteredList() {
+  const q = state.q.trim().toLowerCase();
   let list = state.events.filter((e) =>
     (state.cat === "All" || e.category === state.cat) &&
     (!state.residence || e.residence === state.residence) &&
-    (!state.date || occursOn(e, state.date)));
+    (!state.date || occursOn(e, state.date)) &&
+    (!q || `${e.title} ${e.venue} ${e.description || ""} ${e.residence || ""} ${e.category}`.toLowerCase().includes(q)));
   if (state.date) {
     list = list.slice().sort((a, b) =>
       (a.time_label || "").localeCompare(b.time_label || "") ||
       new Date(a.starts_at).toTimeString().localeCompare(new Date(b.starts_at).toTimeString()));
   }
+  return list;
+}
+
+function subText(list) {
+  const q = state.q.trim();
+  if (q) return `${list.length} result${list.length === 1 ? "" : "s"} for “${esc(q)}”`;
+  if (state.date || state.residence) {
+    const where = state.residence ? ` at ${esc(state.residence)}` : "";
+    const onDate = state.date ? new Date(state.date + "T00:00:00") : null;
+    const when = state.date ? ` on ${fmtDate(onDate)}` : "";
+    return `${list.length} thing${list.length === 1 ? "" : "s"}${where}${when}`;
+  }
+  return `${state.events.length} thing${state.events.length === 1 ? "" : "s"} coming up around ${esc(CITY)}`;
+}
+
+// repaint just the feed + count — keeps the search box focused while typing
+function paintFeed() {
+  const savedIds = new Set(getSaved().map((e) => e.id));
+  const onDate = state.date ? new Date(state.date + "T00:00:00") : null;
+  const list = filteredList();
+  const host = document.getElementById("feedHost");
+  if (host) {
+    host.innerHTML = list.length
+      ? `<div class="feed">${list.map((e, i) => feedCardHTML(e, { saved: savedIds.has(e.id), open: state.open === e.id, index: i, onDate })).join("")}</div>`
+      : emptyHTML(ICON_SEARCH,
+          state.q ? "No matches" : (state.date || state.residence) ? "Nothing to show" : "Nothing here yet",
+          state.q ? "Try a different word, or clear the search." :
+          (state.date || state.residence) ? "Try clearing a filter to see more of what's on." :
+          "Try another category — new things are added through the week.");
+    requestAnimationFrame(() => host.querySelector(".feed") && host.querySelector(".feed").classList.add("ready"));
+  }
+  const p = view.querySelector(".hero p");
+  if (p) p.textContent = subText(list);
+}
+
+function renderDiscover() {
+  const onDate = state.date ? new Date(state.date + "T00:00:00") : null;
+  const residences = [...new Set(state.events.map((e) => e.residence).filter(Boolean))].sort();
+  if (state.residence && !residences.includes(state.residence)) state.residence = null;
 
   const dateChip =
     `<span class="chip chip-date${state.date ? " on" : ""}" id="dateChip" role="button" tabindex="0">
@@ -92,26 +129,21 @@ function renderDiscover() {
          ${residences.map((r) => `<option value="${esc(r)}"${state.residence === r ? " selected" : ""}>${esc(r)}</option>`).join("")}
        </select>`
     : "";
-  const chips = dateChip + catChips + resChip;
-
-  const count = list.length;
-  let sub;
-  if (state.date || state.residence) {
-    const where = state.residence ? ` at ${esc(state.residence)}` : "";
-    const when = state.date ? ` on ${fmtDate(onDate)}` : "";
-    sub = `${count} thing${count === 1 ? "" : "s"}${where}${when}`;
-  } else {
-    sub = `${state.events.length} thing${state.events.length === 1 ? "" : "s"} coming up around ${esc(CITY)}`;
-  }
 
   view.innerHTML =
-    `<section class="hero"><h1>What do you want to <em>do</em>?</h1><p>${sub}</p></section>
-     <div class="chips">${chips}</div>` +
-    (list.length
-      ? `<div class="feed">${list.map((e, i) => feedCardHTML(e, { saved: savedIds.has(e.id), open: state.open === e.id, index: i, onDate })).join("")}</div>`
-      : emptyHTML(ICON_SEARCH,
-          (state.date || state.residence) ? "Nothing to show" : "Nothing here yet",
-          (state.date || state.residence) ? "Try clearing a filter to see more of what's on." : "Try another category — new things are added through the week."));
+    `<section class="hero"><h1>What do you want to <em>do</em>?</h1><p>${subText(filteredList())}</p></section>
+     <div class="filterbar">
+       <div class="searchrow">
+         ${ICON_MAG}
+         <input type="search" id="searchBox" placeholder="Search events, venues, res…" value="${esc(state.q)}"
+           autocomplete="off" autocapitalize="none" spellcheck="false" enterkeyhint="search">
+         <button type="button" id="searchClear" aria-label="Clear search"${state.q ? "" : " hidden"}>&times;</button>
+       </div>
+       <div class="chips">${dateChip}${catChips}${resChip}</div>
+     </div>
+     <div id="feedHost"></div>`;
+
+  paintFeed();
 
   const dp = document.getElementById("datePick");
   const chipEl = document.getElementById("dateChip");
@@ -130,7 +162,16 @@ function renderDiscover() {
   const rp = document.getElementById("resPick");
   if (rp) rp.addEventListener("change", () => { state.residence = rp.value || null; state.open = null; renderDiscover(); });
 
-  settle();
+  const sb = document.getElementById("searchBox");
+  const sc = document.getElementById("searchClear");
+  if (sb) sb.addEventListener("input", () => {
+    state.q = sb.value; state.open = null;
+    if (sc) sc.hidden = !state.q;
+    paintFeed();
+  });
+  if (sc) sc.addEventListener("click", () => { state.q = ""; state.open = null; renderDiscover(); });
+
+  view.scrollTop = 0;
 }
 
 function renderSaved() {
