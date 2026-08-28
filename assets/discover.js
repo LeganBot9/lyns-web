@@ -143,8 +143,22 @@ function renderSaved() {
   settle();
 }
 
+function renderPost() {
+  view.innerHTML = `
+    <section class="view-head"><h1>Post an event</h1>
+      <p>Free for organisers and venues. Every event is checked before it goes live.</p></section>
+    <div class="center-wrap" style="padding-top:14px">
+      <p>Running a club night, a market, a res event, a weekly quiz or run? List it on LYNS
+         and reach students looking for something to do.</p>
+      <a class="btn solid block" href="/organiser">Get started</a>
+      <p class="muted-row">Already an organiser? The same link takes you to sign in.</p>
+    </div>`;
+  view.scrollTop = 0;
+}
+
 function render() {
   if (state.tab === "saved") renderSaved();
+  else if (state.tab === "post") renderPost();
   else renderDiscover();
   document.querySelectorAll(".tabbar .tab").forEach((t) =>
     t.classList.toggle("active", t.dataset.tab === state.tab));
