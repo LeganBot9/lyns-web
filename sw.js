@@ -1,7 +1,7 @@
 // LYNS service worker — network-first, cache as offline fallback only.
 // Online users always get fresh content; the cache just keeps the app usable
 // with no signal. Supabase / fonts / esm.sh are never touched here.
-const CACHE = "lyns-cache-v1";
+const CACHE = "lyns-cache-v2";
 
 self.addEventListener("install", () => self.skipWaiting());
 
