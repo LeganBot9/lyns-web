@@ -60,6 +60,7 @@ create table public.organisers (
   phone      text,
   instagram  text,
   about      text,
+  logo_url   text,
   status     text not null default 'pending'
              check (status in ('pending','approved','suspended'))
 );

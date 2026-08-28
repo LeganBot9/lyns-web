@@ -103,9 +103,9 @@ async function renderQueue() {
 
 function orgRow(o) {
   return `<div class="qitem" data-org="${esc(o.id)}">
-    <img src="${coverFor({ id: o.id, category: "Arts" })}" alt="">
+    <img src="${o.logo_url || coverFor({ id: o.id, category: "Arts" })}" alt="">
     <div>
-      <div class="q-cat">Organiser</div>
+      <div class="q-cat">Organiser${o.logo_url ? "" : " &middot; no photo"}</div>
       <div class="q-title">${esc(o.name)}</div>
       <div class="q-meta">${esc(o.email || "")}${o.phone ? " &middot; " + esc(o.phone) : ""}${o.instagram ? " &middot; " + esc(o.instagram) : ""}</div>
       ${o.about ? `<div class="q-meta" style="margin-top:4px">${esc(o.about)}</div>` : ""}

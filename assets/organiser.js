@@ -1,6 +1,7 @@
 import { sb } from "./supabase.js";
 import { esc, coverFor, whenShort, recurTag } from "./ui.js";
 import { eventFormHTML, bindEventForm, readEventForm, uploadCover } from "./eventform.js";
+import { photoField, bindPhotoField, uploadImage } from "./photo.js";
 
 const view = document.getElementById("view");
 const toast = document.getElementById("toast");
@@ -55,6 +56,7 @@ function screenProfile(user) {
     <form class="stack" id="profileForm" novalidate>
       <div class="field"><label for="p-name">Name or venue</label>
         <input id="p-name" name="name" required maxlength="80" placeholder="Bohemia / Jane Smith"></div>
+      ${photoField({ id: "logo", label: "Your photo or logo", hint: "(helps us verify you)" })}
       <div class="field"><label for="p-phone">Phone</label>
         <input id="p-phone" name="phone" type="tel" placeholder="072 000 0000"></div>
       <div class="field"><label for="p-ig">Instagram <span class="hint">(helps us verify you fast)</span></label>
@@ -65,12 +67,15 @@ function screenProfile(user) {
     </form>
     <p class="muted-row" style="padding:0 22px 40px"><button id="signout">Sign out</button></p>`;
   document.getElementById("signout").addEventListener("click", signOut);
+  const logoField = bindPhotoField(view, "logo");
   document.getElementById("profileForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const f = e.target.elements;
     if (!f.name.value.trim()) return;
     const btn = e.target.querySelector("button[type=submit]");
     btn.disabled = true; btn.textContent = "Submitting…";
+    let logo_url = null;
+    if (logoField.file()) logo_url = await uploadImage(sb, "event-images", logoField.file(), user.id, "logo-");
     const { error } = await sb.from("organisers").insert({
       id: user.id,
       name: f.name.value.trim(),
@@ -78,6 +83,7 @@ function screenProfile(user) {
       phone: f.phone.value.trim() || null,
       instagram: f.instagram.value.trim() || null,
       about: f.about.value.trim() || null,
+      logo_url,
     });
     if (error) { flash(error.message); btn.disabled = false; btn.textContent = "Submit for verification"; return; }
     route();
