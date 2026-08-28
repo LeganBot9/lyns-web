@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>LYNS — what do you want to do?</title>
+<meta name="description" content="Discover events and things to do around Stellenbosch. One calm place, no account needed.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..500&family=Hanken+Grotesk:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <a class="brand" href="/">LYNS</a>
+    <button class="loc" id="loc" type="button">Stellenbosch &#9662;</button>
+  </header>
+
+  <main class="scroll" id="view" aria-live="polite"></main>
+
+  <nav class="tabbar" aria-label="Sections">
+    <button class="tab active" data-tab="discover" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      Discover
+    </button>
+    <button class="tab" data-tab="saved" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12v16l-6-4-6 4z"/></svg>
+      Saved
+    </button>
+    <a class="tab" href="/organiser">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+      Post
+    </a>
+  </nav>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script type="module" src="/assets/discover.js"></script>
+</body>
+</html>
