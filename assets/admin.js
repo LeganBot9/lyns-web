@@ -76,10 +76,12 @@ async function renderQueue() {
   const box = document.getElementById("q");
 
   const [orgRes, evRes] = await Promise.all([
-    sb.from("organisers").select("*").eq("status", "pending").order("created_at", { ascending: true }),
+    sb.from("organisers").select("*").order("created_at", { ascending: true }),
     sb.from("events").select("*").eq("status", "pending").order("created_at", { ascending: true }),
   ]);
-  const orgs = orgRes.data || [];
+  const allOrgs = orgRes.data || [];
+  const orgs = allOrgs.filter((o) => o.status !== "approved");   // pending + suspended need action
+  const liveOrgs = allOrgs.filter((o) => o.status === "approved");
   const evs = evRes.data || [];
 
   // organiser names for the event rows
@@ -90,30 +92,40 @@ async function renderQueue() {
     (data || []).forEach((o) => { names[o.id] = o.name; });
   }
 
-  let html = `<div class="subhead">Organisers waiting (${orgs.length})</div><div class="qlist">`;
-  html += orgs.length ? orgs.map(orgRow).join("") : `<p class="q-plain">No new organisers.</p>`;
+  let html = `<div class="subhead">Organisers to action (${orgs.length})</div><div class="qlist">`;
+  html += orgs.length ? orgs.map(orgRow).join("") : `<p class="q-plain">Nothing to action.</p>`;
   html += `</div>`;
 
   html += `<div class="subhead">Events waiting (${evs.length})</div><div class="qlist">`;
   html += evs.length ? evs.map((e) => eventRow(e, names[e.organiser_id] || "LYNS (direct)")).join("")
                      : `<p class="q-plain">No events to review.</p>`;
   html += `</div>`;
+
+  html += `<div class="subhead">Approved organisers (${liveOrgs.length})</div><div class="qlist">`;
+  html += liveOrgs.length ? liveOrgs.map(orgRow).join("") : `<p class="q-plain">None yet.</p>`;
+  html += `</div>`;
   box.innerHTML = html;
 }
 
 function orgRow(o) {
+  const tag = o.status === "approved" ? ` &middot; <span class="q-live">approved</span>`
+            : o.status === "suspended" ? ` &middot; <span class="tag-bad">paused</span>`
+            : ` &middot; <span class="tag-pending">pending</span>`;
+  const actions = o.status === "approved"
+    ? `<button class="btn line mini" data-act="org-suspend">Pause</button>`
+    : o.status === "suspended"
+    ? `<button class="btn solid mini" data-act="org-approve">Reinstate</button>`
+    : `<button class="btn solid mini" data-act="org-approve">Approve</button>
+       <button class="btn danger mini" data-act="org-decline">Decline</button>`;
   return `<div class="qitem" data-org="${esc(o.id)}">
     <img src="${o.logo_url || coverFor({ id: o.id, category: "Arts" })}" alt="">
     <div>
-      <div class="q-cat">Organiser${o.logo_url ? "" : " &middot; no photo"}</div>
+      <div class="q-cat">Organiser${tag}${o.logo_url ? "" : " &middot; no photo"}</div>
       <div class="q-title">${esc(o.name)}</div>
       <div class="q-meta">${esc(o.email || "")}${o.phone ? " &middot; " + esc(o.phone) : ""}${o.instagram ? " &middot; " + esc(o.instagram) : ""}</div>
       ${o.about ? `<div class="q-meta" style="margin-top:4px">${esc(o.about)}</div>` : ""}
     </div>
-    <div class="q-actions">
-      <button class="btn solid mini" data-act="org-approve">Approve</button>
-      <button class="btn danger mini" data-act="org-decline">Decline</button>
-    </div>
+    <div class="q-actions">${actions}</div>
   </div>`;
 }
 
@@ -204,12 +216,12 @@ view.addEventListener("click", async (e) => {
   const row = b.closest("[data-ev],[data-org]");
   b.disabled = true;
   try {
-    if (act === "org-approve" || act === "org-decline") {
+    if (act === "org-approve" || act === "org-decline" || act === "org-suspend") {
       const id = row.dataset.org;
       const status = act === "org-approve" ? "approved" : "suspended";
       const { error } = await sb.from("organisers").update({ status }).eq("id", id);
       if (error) throw error;
-      flash(act === "org-approve" ? "Organiser approved" : "Organiser declined");
+      flash(act === "org-approve" ? "Organiser approved" : act === "org-suspend" ? "Organiser paused" : "Organiser declined");
     } else {
       const id = row.dataset.ev;
       const map = { "ev-approve": "approved", "ev-decline": "declined", "ev-archive": "archived" };

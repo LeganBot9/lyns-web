@@ -264,6 +264,8 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--gold);outline-offse
 .qitem .q-meta{font-size:12.5px;color:var(--navy-2)}
 .qitem .q-actions{grid-column:1 / -1;display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 .q-live{color:var(--good);font-weight:700}
+.tag-bad{color:var(--bad);font-weight:700}
+.tag-pending{color:var(--gold);font-weight:700}
 .q-plain{padding:14px 0;font-size:13px;color:var(--muted)}
 .status-pill{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.08em;
   text-transform:uppercase;padding:3px 9px;border-radius:999px;border:1px solid var(--line);color:var(--navy-2)}
