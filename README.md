@@ -14,7 +14,8 @@ image storage. Deployed on [Vercel](https://vercel.com).
 web/
   index.html  organiser.html  admin.html
   assets/         config.js (← your keys), supabase.js, ui.js, eventform.js, *.js, styles.css
-  supabase/       schema.sql (run once), seed.sql (optional demo data)
+  supabase/       schema.sql (fresh setup), migration-*.sql (one-off updates),
+                  seed.sql (starter events), dedupe.sql (cleanup)
   vercel.json
 ```
 
@@ -36,9 +37,20 @@ web/
 6. **Authentication → Providers → Email:** make sure **Email** is on. "Confirm email" can stay on;
    sign-in uses a magic link so no passwords are involved.
 
-> The built-in Supabase email sender is rate-limited (a few messages per hour) — fine for testing.
-> Before launch, add a real SMTP provider (Resend, Postmark, Mailgun) under
-> **Authentication → Emails → SMTP Settings**.
+### Email / SMTP (do this before real testing)
+
+Supabase's built-in email sender caps at **~2–4 messages per hour** — you'll hit
+`email rate limit exceeded` fast once other people start signing in. Fix it with your own SMTP
+under **Authentication → Emails → SMTP Settings** (then raise the limits under
+**Authentication → Rate Limits**):
+
+- **Quick, no domain needed — Gmail:** turn on 2-step verification on the Google account →
+  create an **App Password** (Google Account → Security → App passwords) → in Supabase set
+  host `smtp.gmail.com`, port `465`, user + sender = your Gmail address, password = the app
+  password. ~500/day. Fine for testing; mail comes "from" your personal address.
+- **Proper — Resend:** sign up at resend.com (3,000/month free), verify a domain (needs
+  `lyns.co.za`), create an SMTP credential, paste host `smtp.resend.com` port `465` + the key.
+  Branded "from" address, best deliverability.
 
 ## 2. Deploy to Vercel
 
