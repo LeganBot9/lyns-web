@@ -2,7 +2,13 @@ import { sb } from "./supabase.js";
 import { CITY } from "./config.js";
 import {
   CATS_WITH_ALL, feedCardHTML, esc, startOfTodayISO, effectiveStart,
+  occursOn, fmtDate,
 } from "./ui.js";
+
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
 const view = document.getElementById("view");
 const toast = document.getElementById("toast");
@@ -20,8 +26,9 @@ function setSaved(a) {
   try { localStorage.setItem("lyns.saved", JSON.stringify(a)); } catch {}
 }
 
-const state = { tab: "discover", cat: "All", open: null, events: [] };
+const state = { tab: "discover", cat: "All", date: null, open: null, events: [] };
 
+const ICON_CAL = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9h18M8 2.5v4M16 2.5v4"/></svg>`;
 const ICON_SEARCH = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>`;
 const ICON_BKM = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M6 4h12v16l-6-4-6 4z"/></svg>`;
 
@@ -56,17 +63,54 @@ async function loadEvents() {
 
 function renderDiscover() {
   const savedIds = new Set(getSaved().map((e) => e.id));
-  const list = state.events.filter((e) => state.cat === "All" || e.category === state.cat);
+  const onDate = state.date ? new Date(state.date + "T00:00:00") : null;
+
+  let list = state.events.filter((e) =>
+    (state.cat === "All" || e.category === state.cat) &&
+    (!state.date || occursOn(e, state.date)));
+  if (state.date) {
+    list = list.slice().sort((a, b) =>
+      (a.time_label || "").localeCompare(b.time_label || "") ||
+      new Date(a.starts_at).toTimeString().localeCompare(new Date(b.starts_at).toTimeString()));
+  }
+
   const chips = CATS_WITH_ALL.map((c) =>
     `<button class="chip" type="button" data-cat="${c}" aria-pressed="${state.cat === c}">${c}</button>`
-  ).join("");
+  ).join("") +
+    `<span class="chip chip-date${state.date ? " on" : ""}" id="dateChip" role="button" tabindex="0">
+       ${ICON_CAL}<span class="cd-label">${state.date ? esc(fmtDate(onDate)) : "Day"}</span>
+       ${state.date ? `<button type="button" id="dateClear" aria-label="Clear day">&times;</button>` : ""}
+       <input type="date" id="datePick" min="${todayStr()}" value="${state.date || ""}" aria-label="Pick a day" tabindex="-1">
+     </span>`;
+
+  const count = list.length;
+  const sub = state.date
+    ? `${count} thing${count === 1 ? "" : "s"} on ${fmtDate(onDate)}`
+    : `${state.events.length} thing${state.events.length === 1 ? "" : "s"} coming up around ${esc(CITY)}`;
+
   view.innerHTML =
-    `<section class="hero"><h1>What do you want to <em>do</em>?</h1>
-       <p>${state.events.length} thing${state.events.length === 1 ? "" : "s"} coming up around ${esc(CITY)}</p></section>
+    `<section class="hero"><h1>What do you want to <em>do</em>?</h1><p>${sub}</p></section>
      <div class="chips">${chips}</div>` +
     (list.length
-      ? `<div class="feed">${list.map((e, i) => feedCardHTML(e, { saved: savedIds.has(e.id), open: state.open === e.id, index: i })).join("")}</div>`
-      : emptyHTML(ICON_SEARCH, "Nothing here yet", "Try another category — new things are added through the week."));
+      ? `<div class="feed">${list.map((e, i) => feedCardHTML(e, { saved: savedIds.has(e.id), open: state.open === e.id, index: i, onDate })).join("")}</div>`
+      : emptyHTML(ICON_SEARCH,
+          state.date ? "Nothing on that day" : "Nothing here yet",
+          state.date ? "Try another day, or clear the date to see everything coming up." : "Try another category — new things are added through the week."));
+
+  const dp = document.getElementById("datePick");
+  const chipEl = document.getElementById("dateChip");
+  if (dp) dp.addEventListener("change", () => { state.date = dp.value || null; state.open = null; renderDiscover(); });
+  if (chipEl) {
+    const openPicker = (e) => {
+      if (e.target.closest("#dateClear")) return;
+      try { dp.showPicker(); } catch { dp.focus(); }
+    };
+    chipEl.addEventListener("click", openPicker);
+    chipEl.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openPicker(e); } });
+  }
+  const dc = document.getElementById("dateClear");
+  if (dc) dc.addEventListener("click", (e) => { e.stopPropagation(); state.date = null; state.open = null; renderDiscover(); });
+
   settle();
 }
 
@@ -118,7 +162,7 @@ view.addEventListener("click", (e) => {
     return;
   }
   const chip = e.target.closest(".chip");
-  if (chip) { state.cat = chip.dataset.cat; state.open = null; renderDiscover(); }
+  if (chip && chip.dataset.cat) { state.cat = chip.dataset.cat; state.open = null; renderDiscover(); }
 });
 
 document.querySelectorAll(".tabbar .tab[data-tab]").forEach((t) =>

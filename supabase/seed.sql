@@ -20,6 +20,14 @@ alter table public.events drop constraint if exists events_recurrence_check;
 alter table public.events add constraint events_recurrence_check
   check (recurrence in ('none','weekly','monthly'));
 
+-- clear any previous copy of these seed rows so this file is safe to re-run
+delete from public.events where title in (
+  'Casa Beer Run','Stellenbosch Coffee Run','Aandklas Quiz Night','De Warenmarkt Quiz',
+  'The Courtyard Cafe Quiz','Versus Friday Run','Tuesday Time Trial','Blaauwklippen Family Market',
+  'Stellenbosch Slow Market','ClubPadel Social','Live Music at Daisy Jones','First Thursdays Stellenbosch',
+  'Run the Bosch Trail Run','The Gratitude Run','Christmas Lights Switch-On & Night Market','Stellenbosch Woordfees'
+);
+
 -- weekly rows target the NEXT occurrence of that weekday; isodow Mon=1..Sun=7.
 insert into public.events
   (organiser_id, title, category, starts_at, time_label, recurrence, venue, price, description, status, reviewed_at, reviewed_by)

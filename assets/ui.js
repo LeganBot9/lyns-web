@@ -50,8 +50,10 @@ function relDay(d) {
   return fmtDate(d);
 }
 
-// compact label for the collapsed card and list rows
-export function whenShort(ev) {
+// compact label for the collapsed card and list rows.
+// onDate: when the feed is filtered to a specific day, show that day.
+export function whenShort(ev, onDate) {
+  if (onDate) return relDay(onDate);
   const rec = ev.recurrence || "none";
   if (rec === "weekly") return DOW_PLURAL[new Date(ev.starts_at).getDay()];
   if (rec === "monthly") return "Monthly";
@@ -59,14 +61,26 @@ export function whenShort(ev) {
 }
 
 // full label for the expanded card
-export function whenLabel(ev) {
-  const rec = ev.recurrence || "none";
+export function whenLabel(ev, onDate) {
   const t = timeOf(ev);
+  if (onDate) return `${fmtDate(onDate)}, ${t}`;
+  const rec = ev.recurrence || "none";
   if (rec === "none") return `${fmtDate(effectiveStart(ev))}, ${t}`;
   const rd = relDay(effectiveStart(ev));
   const next = rd === "today" || rd === "tomorrow" ? rd : `next ${rd}`;
   const head = rec === "weekly" ? DOW_PLURAL[new Date(ev.starts_at).getDay()] : "Monthly";
   return `${head}, ${t} · ${next}`;
+}
+
+// does this event happen on the given YYYY-MM-DD?
+export function occursOn(ev, dateStr) {
+  const day = new Date(dateStr + "T00:00:00");
+  const end = new Date(dateStr + "T23:59:59");
+  const base = new Date(ev.starts_at);
+  const rec = ev.recurrence || "none";
+  if (rec === "weekly") return base.getDay() === day.getDay();
+  if (rec === "monthly") return base.getDate() === day.getDate();
+  return base >= day && base <= end;
 }
 
 export function recurTag(ev) {
@@ -173,7 +187,7 @@ const BKM = `<svg viewBox="0 0 24 24" aria-hidden="true">
   <path class="stroke" d="M6 4h12v16l-6-4-6 4z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
   <path class="fill" d="M6 4h12v16l-6-4-6 4z" fill="currentColor"/></svg>`;
 
-export function feedCardHTML(ev, { saved = false, open = false, index = 0 } = {}) {
+export function feedCardHTML(ev, { saved = false, open = false, index = 0, onDate = null } = {}) {
   const ticket = ev.ticket_url
     ? `<a class="btn solid" href="${esc(ev.ticket_url)}" target="_blank" rel="noopener">Get tickets</a>`
     : `<span class="btn ghost">Free &mdash; just show up</span>`;
@@ -185,7 +199,7 @@ export function feedCardHTML(ev, { saved = false, open = false, index = 0 } = {}
       <span class="card-copy">
         <span class="cat">${eyebrow}</span>
         <span class="card-title">${esc(ev.title)}</span>
-        <span class="card-sub">${esc(whenShort(ev))} &middot; ${esc(ev.venue)}</span>
+        <span class="card-sub">${esc(whenShort(ev, onDate))} &middot; ${esc(ev.venue)}</span>
       </span>
     </button>
     <button class="bkm${saved ? " on" : ""}" type="button" data-save
@@ -193,7 +207,7 @@ export function feedCardHTML(ev, { saved = false, open = false, index = 0 } = {}
     <div class="card-body"><div><div class="card-body-inner">
       <p class="blurb">${esc(ev.description) || "No description yet."}</p>
       <dl class="facts">
-        <div><dt>When</dt><dd>${esc(whenLabel(ev))}</dd></div>
+        <div><dt>When</dt><dd>${esc(whenLabel(ev, onDate))}</dd></div>
         <div><dt>Cost</dt><dd>${esc(ev.price)}</dd></div>
         <div><dt>Where</dt><dd>${esc(ev.venue)}, ${esc(ev.area)}</dd></div>
       </dl>
