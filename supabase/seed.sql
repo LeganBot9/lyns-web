@@ -1,21 +1,26 @@
 -- ============================================================================
 -- LYNS — Stellenbosch starter events (recurring + one-off)
 --
--- 1. Make sure `recurrence` exists: run migration-recurrence.sql first
---    (or re-run schema.sql). Skip if your schema.sql already had recurrence.
--- 2. Deploy, sign in on /admin, add yourself to `admins` (see schema.sql).
--- 3. Dashboard -> Authentication -> Users -> copy YOUR user UID.
--- 4. SQL Editor -> Edit -> Replace:  00000000-0000-0000-0000-000000000000
---    with your UID  (it appears twice per row) -> Run this file.
+-- 1. Deploy, sign in on /admin, add yourself to `admins` (see schema.sql).
+-- 2. Dashboard -> Authentication -> Users -> copy YOUR user UID.
+-- 3. SQL Editor -> Edit -> Replace:  00000000-0000-0000-0000-000000000000
+--    with your UID  (it appears twice per row) -> Run this whole file.
+--
+-- This file also adds the `recurrence` column if it's missing, so it works
+-- whether or not you've run migration-recurrence.sql.
 --
 -- Times/venues are best-effort from public listings — check each against the
 -- venue's own page/Instagram and fix from the admin "Live" tab. Remove them all
 -- with:  delete from public.events where reviewed_by = 'YOUR-UID';
 -- ============================================================================
 
--- helper note: weekly rows target the NEXT occurrence of that weekday;
--- isodow -> Mon=1 .. Sun=7. Times are stored as Africa/Johannesburg local.
+-- make sure recurrence exists (safe to run repeatedly)
+alter table public.events add column if not exists recurrence text not null default 'none';
+alter table public.events drop constraint if exists events_recurrence_check;
+alter table public.events add constraint events_recurrence_check
+  check (recurrence in ('none','weekly','monthly'));
 
+-- weekly rows target the NEXT occurrence of that weekday; isodow Mon=1..Sun=7.
 insert into public.events
   (organiser_id, title, category, starts_at, time_label, recurrence, venue, price, description, status, reviewed_at, reviewed_by)
 values
