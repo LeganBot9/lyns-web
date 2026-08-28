@@ -76,18 +76,19 @@ auth redirects need a real origin.
    ```
 5. Reload `/admin`. You now have the queue. To add another admin later, insert their UID the same way.
 
-## 4. Recurring events + starter data
+## 4. One-shot setup / update
 
-If your database was created before the `recurrence` column existed, run
-[`supabase/migration-recurrence.sql`](supabase/migration-recurrence.sql) once (keeps your data).
-If you re-run `schema.sql`, it's already included.
+After `schema.sql`, just run **[`supabase/setup-all.sql`](supabase/setup-all.sql)** — it applies
+every later change at once (recurring-events column, residence column, organiser logo column,
+the security-advisor fixes, storage policies), **makes you the admin**, and loads the ~19
+Stellenbosch starter events. Safe to re-run; it won't duplicate anything. The admin UID is
+baked into that file — change it there if it's ever a different account.
 
-Then follow the steps at the top of [`supabase/seed.sql`](supabase/seed.sql) and run it — it
-loads ~16 real Stellenbosch things (the beer run, coffee run, pub quizzes, weekend markets,
-First Thursdays, Woordfees…). Weekly and monthly ones roll their date forward automatically.
-**Check every time/venue against the source and fix from the admin "Live" tab** — they're
-best-effort from public listings. Remove them all with
-`delete from public.events where reviewed_by = 'YOUR-UID';`
+The individual `migration-*.sql` / `seed.sql` / `dedupe.sql` files still exist if you want to
+apply changes piecemeal, but `setup-all.sql` covers all of them.
+
+**Check every seeded time/venue against the source and fix from the admin "Live" tab** — they're
+best-effort from public listings.
 
 **How recurrence works:** an event stores one `starts_at` plus `recurrence` = `none` / `weekly`
 / `monthly`. The feed shows the next occurrence and keeps showing it — no cron, no duplicate
