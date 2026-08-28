@@ -4,6 +4,16 @@
 export const CATS = ["Music", "Nightlife", "Outdoors", "Sport", "Arts", "Markets"];
 export const CATS_WITH_ALL = ["All", ...CATS];
 
+// Stellenbosch University residences — a suggestion list, organisers can type any.
+export const RESIDENCES = [
+  "Wilgenhof", "Dagbreek", "Helshoogte", "Simonsberg", "Eendrag", "Huis Marais",
+  "Majuba", "Helderberg", "Pieke", "Wilcocks", "Huis Visser", "Huis McDonald",
+  "Minerva", "Harmonie", "Monica", "Nemesia", "Huis ten Bosch", "Serruria",
+  "Heemstede", "Sonop", "Irene", "Lydia", "Nerina", "Silene",
+  "Concordia", "Academia", "Metanoia", "Hippokrates", "Venustia", "Osler",
+  "PSO / private residence",
+].sort();
+
 const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const DOW_PLURAL = ["Sundays", "Mondays", "Tuesdays", "Wednesdays", "Thursdays", "Fridays", "Saturdays"];
 const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -192,7 +202,9 @@ export function feedCardHTML(ev, { saved = false, open = false, index = 0, onDat
     ? `<a class="btn solid" href="${esc(ev.ticket_url)}" target="_blank" rel="noopener">Get tickets</a>`
     : `<span class="btn ghost">Free &mdash; just show up</span>`;
   const rt = recurTag(ev);
-  const eyebrow = esc(ev.category) + (rt ? ` &middot; <span class="recur">${rt}</span>` : "");
+  const eyebrow = esc(ev.category)
+    + (ev.residence ? ` &middot; <span class="res">${esc(ev.residence)}</span>` : "")
+    + (rt ? ` &middot; <span class="recur">${rt}</span>` : "");
   return `<article class="card${open ? " open" : ""}" data-id="${esc(ev.id)}" style="--i:${index}">
     <button class="card-head" type="button" aria-expanded="${open}">
       <img class="card-media" src="${coverFor(ev)}" alt="" loading="lazy">

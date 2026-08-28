@@ -1,6 +1,6 @@
 // Shared "post an event" form — used by the organiser page and the admin page.
 import { sb } from "./supabase.js";
-import { CATS, timeOptions } from "./ui.js";
+import { CATS, timeOptions, RESIDENCES } from "./ui.js";
 
 function todayStr() {
   const d = new Date();
@@ -14,6 +14,16 @@ export function eventFormHTML({ submitLabel = "Submit for review" } = {}) {
     <div class="field">
       <label for="ef-title">Event name</label>
       <input id="ef-title" name="title" required maxlength="70" placeholder="e.g. Rooftop Jazz Session">
+    </div>
+
+    <div class="field">
+      <label for="ef-image">Cover photo <span class="hint">(shown on the front of the card)</span></label>
+      <label class="photo-drop" for="ef-image" id="ef-photo-drop">
+        <span class="photo-drop-inner">Tap to add a photo<br><small>JPG or PNG · a cover is generated if you skip this</small></span>
+        <img id="ef-photo-preview" alt="" hidden>
+      </label>
+      <input id="ef-image" name="image" type="file" accept="image/png,image/jpeg,image/webp" class="visually-hidden">
+      <button type="button" id="ef-photo-clear" class="link-btn" hidden>Remove photo</button>
     </div>
 
     <div class="field">
@@ -53,6 +63,12 @@ export function eventFormHTML({ submitLabel = "Submit for review" } = {}) {
     </div>
 
     <div class="field">
+      <label for="ef-res">Residence <span class="hint">(only if it's a res / koshuis event)</span></label>
+      <input id="ef-res" name="residence" list="ef-res-list" maxlength="40" placeholder="Leave blank if not">
+      <datalist id="ef-res-list">${RESIDENCES.map((r) => `<option value="${r}">`).join("")}</datalist>
+    </div>
+
+    <div class="field">
       <label>Price</label>
       <label class="check"><input type="checkbox" id="ef-free" name="free"> Free entry</label>
       <div class="rand">
@@ -72,11 +88,6 @@ export function eventFormHTML({ submitLabel = "Submit for review" } = {}) {
       <input id="ef-ticket" name="ticket_url" type="url" placeholder="https://">
     </div>
 
-    <div class="field">
-      <label for="ef-image">Cover photo <span class="hint">(optional — a cover is generated if you skip this)</span></label>
-      <input id="ef-image" name="image" type="file" accept="image/png,image/jpeg,image/webp">
-    </div>
-
     <button class="btn solid" type="submit" id="ef-submit" style="align-self:flex-start">${submitLabel}</button>
   </form>`;
 }
@@ -87,6 +98,25 @@ export function bindEventForm(form) {
   const sync = () => { price.disabled = free.checked; if (free.checked) price.value = ""; };
   free.addEventListener("change", sync);
   sync();
+
+  // cover photo preview
+  const input = form.querySelector("#ef-image");
+  const drop = form.querySelector("#ef-photo-drop");
+  const preview = form.querySelector("#ef-photo-preview");
+  const clearBtn = form.querySelector("#ef-photo-clear");
+  const showPreview = (file) => {
+    if (!file) {
+      preview.hidden = true; preview.removeAttribute("src");
+      drop.classList.remove("has-photo"); clearBtn.hidden = true;
+      return;
+    }
+    preview.src = URL.createObjectURL(file);
+    preview.hidden = false;
+    drop.classList.add("has-photo");
+    clearBtn.hidden = false;
+  };
+  input.addEventListener("change", () => showPreview(input.files[0] || null));
+  clearBtn.addEventListener("click", () => { input.value = ""; showPreview(null); });
 }
 
 export function readEventForm(form) {
@@ -124,6 +154,7 @@ export function readEventForm(form) {
       starts_at,
       time_label: f.time_label.value.trim() || null,
       venue,
+      residence: f.residence.value.trim() || null,
       price,
       description: f.description.value.trim() || null,
       ticket_url: ticket || null,

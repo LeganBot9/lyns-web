@@ -26,7 +26,7 @@ function setSaved(a) {
   try { localStorage.setItem("lyns.saved", JSON.stringify(a)); } catch {}
 }
 
-const state = { tab: "discover", cat: "All", date: null, open: null, events: [] };
+const state = { tab: "discover", cat: "All", date: null, residence: null, open: null, events: [] };
 
 const ICON_CAL = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9h18M8 2.5v4M16 2.5v4"/></svg>`;
 const ICON_SEARCH = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>`;
@@ -64,9 +64,12 @@ async function loadEvents() {
 function renderDiscover() {
   const savedIds = new Set(getSaved().map((e) => e.id));
   const onDate = state.date ? new Date(state.date + "T00:00:00") : null;
+  const residences = [...new Set(state.events.map((e) => e.residence).filter(Boolean))].sort();
+  if (state.residence && !residences.includes(state.residence)) state.residence = null;
 
   let list = state.events.filter((e) =>
     (state.cat === "All" || e.category === state.cat) &&
+    (!state.residence || e.residence === state.residence) &&
     (!state.date || occursOn(e, state.date)));
   if (state.date) {
     list = list.slice().sort((a, b) =>
@@ -81,12 +84,23 @@ function renderDiscover() {
        ${ICON_CAL}<span class="cd-label">${state.date ? esc(fmtDate(onDate)) : "Day"}</span>
        ${state.date ? `<button type="button" id="dateClear" aria-label="Clear day">&times;</button>` : ""}
        <input type="date" id="datePick" min="${todayStr()}" value="${state.date || ""}" aria-label="Pick a day" tabindex="-1">
-     </span>`;
+     </span>` +
+    (residences.length
+      ? `<select class="chip chip-select${state.residence ? " on" : ""}" id="resPick" aria-label="Residence">
+           <option value="">Residence</option>
+           ${residences.map((r) => `<option value="${esc(r)}"${state.residence === r ? " selected" : ""}>${esc(r)}</option>`).join("")}
+         </select>`
+      : "");
 
   const count = list.length;
-  const sub = state.date
-    ? `${count} thing${count === 1 ? "" : "s"} on ${fmtDate(onDate)}`
-    : `${state.events.length} thing${state.events.length === 1 ? "" : "s"} coming up around ${esc(CITY)}`;
+  let sub;
+  if (state.date || state.residence) {
+    const where = state.residence ? ` at ${esc(state.residence)}` : "";
+    const when = state.date ? ` on ${fmtDate(onDate)}` : "";
+    sub = `${count} thing${count === 1 ? "" : "s"}${where}${when}`;
+  } else {
+    sub = `${state.events.length} thing${state.events.length === 1 ? "" : "s"} coming up around ${esc(CITY)}`;
+  }
 
   view.innerHTML =
     `<section class="hero"><h1>What do you want to <em>do</em>?</h1><p>${sub}</p></section>
@@ -94,8 +108,8 @@ function renderDiscover() {
     (list.length
       ? `<div class="feed">${list.map((e, i) => feedCardHTML(e, { saved: savedIds.has(e.id), open: state.open === e.id, index: i, onDate })).join("")}</div>`
       : emptyHTML(ICON_SEARCH,
-          state.date ? "Nothing on that day" : "Nothing here yet",
-          state.date ? "Try another day, or clear the date to see everything coming up." : "Try another category — new things are added through the week."));
+          (state.date || state.residence) ? "Nothing to show" : "Nothing here yet",
+          (state.date || state.residence) ? "Try clearing a filter to see more of what's on." : "Try another category — new things are added through the week."));
 
   const dp = document.getElementById("datePick");
   const chipEl = document.getElementById("dateChip");
@@ -110,6 +124,9 @@ function renderDiscover() {
   }
   const dc = document.getElementById("dateClear");
   if (dc) dc.addEventListener("click", (e) => { e.stopPropagation(); state.date = null; state.open = null; renderDiscover(); });
+
+  const rp = document.getElementById("resPick");
+  if (rp) rp.addEventListener("change", () => { state.residence = rp.value || null; state.open = null; renderDiscover(); });
 
   settle();
 }

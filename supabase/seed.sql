@@ -14,11 +14,12 @@
 -- with:  delete from public.events where reviewed_by = 'YOUR-UID';
 -- ============================================================================
 
--- make sure recurrence exists (safe to run repeatedly)
+-- make sure the newer columns exist (safe to run repeatedly)
 alter table public.events add column if not exists recurrence text not null default 'none';
 alter table public.events drop constraint if exists events_recurrence_check;
 alter table public.events add constraint events_recurrence_check
   check (recurrence in ('none','weekly','monthly'));
+alter table public.events add column if not exists residence text;
 
 -- clear any previous copy of these seed rows so this file is safe to re-run
 delete from public.events where title in (
@@ -129,4 +130,27 @@ values
   timezone('Africa/Johannesburg', timestamp '2026-10-09 10:00'),
   null,'none','Venues across Stellenbosch','Ticketed',
   'Ten days of theatre, live music, talks, film and food across town. Full programme and tickets at woordfees.co.za.',
+  'approved', now(),'00000000-0000-0000-0000-000000000000');
+
+-- ---- a few residence (koshuis) events, to show the Residence filter --------
+delete from public.events where title in (
+  'Wilgenhof Serenade Practice','Dagbreek vs Simonsberg','Huis ten Bosch Open Mic'
+);
+insert into public.events
+  (organiser_id, title, category, starts_at, time_label, recurrence, venue, residence, price, description, status, reviewed_at, reviewed_by)
+values
+('00000000-0000-0000-0000-000000000000','Wilgenhof Serenade Practice','Music',
+  timezone('Africa/Johannesburg', (current_date + ((2 - extract(isodow from current_date)::int + 7) % 7)) + time '19:30'),
+  null,'weekly','Wilgenhof dining hall','Wilgenhof','Free',
+  'Weekly serenade rehearsal, open to anyone in res who wants to sing. New voices always welcome.',
+  'approved', now(),'00000000-0000-0000-0000-000000000000'),
+('00000000-0000-0000-0000-000000000000','Dagbreek vs Simonsberg','Sport',
+  timezone('Africa/Johannesburg', timestamp '2026-09-05 14:00'),
+  null,'none','Coetzenburg B-field','Dagbreek','Free',
+  'Inter-res rugby derby. Wear your colours, stands open an hour before kick-off.',
+  'approved', now(),'00000000-0000-0000-0000-000000000000'),
+('00000000-0000-0000-0000-000000000000','Huis ten Bosch Open Mic','Arts',
+  timezone('Africa/Johannesburg', timestamp '2026-09-11 20:00'),
+  null,'none','Huis ten Bosch common room','Huis ten Bosch','Free',
+  'Music, poetry and stand-up from residents and guests. Sign up on the night.',
   'approved', now(),'00000000-0000-0000-0000-000000000000');

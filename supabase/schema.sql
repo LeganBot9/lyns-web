@@ -22,9 +22,11 @@ drop policy if exists "authenticated updates own folder" on storage.objects;
 create extension if not exists "pgcrypto";
 
 -- ---------------------------------------------------------------------------
--- admins : who may see the review queue. This table has NO API policies, so it
--- can only be changed by you from the dashboard. Nobody can grant themselves
--- access from the website.
+-- admins : who may see the review queue. A signed-in user may read ONLY their
+-- own row (so is_admin() works without elevated privileges) — they cannot see
+-- other admins, and there is no insert/update/delete policy, so nobody can
+-- grant themselves access from the website. You edit this table only from the
+-- Supabase dashboard.
 -- ---------------------------------------------------------------------------
 create table public.admins (
   user_id  uuid primary key references auth.users(id) on delete cascade,
@@ -32,14 +34,17 @@ create table public.admins (
 );
 alter table public.admins enable row level security;
 
+create policy "read own admin row" on public.admins
+  for select using (user_id = (select auth.uid()));
+
 create function public.is_admin()
 returns boolean
 language sql
-security definer
+security invoker
 stable
-set search_path = public
+set search_path = ''
 as $$
-  select exists (select 1 from public.admins where user_id = auth.uid());
+  select exists (select 1 from public.admins where user_id = (select auth.uid()));
 $$;
 
 -- ---------------------------------------------------------------------------
@@ -84,6 +89,7 @@ create table public.events (
   recurrence   text not null default 'none'
                check (recurrence in ('none','weekly','monthly')),
   venue        text not null,
+  residence    text,                    -- SU koshuis, if it's a residence event
   area         text not null default 'Stellenbosch',
   price        text not null,
   description  text,
@@ -125,25 +131,25 @@ create policy "admin deletes event" on public.events
   for delete using (public.is_admin());
 
 -- ---------------------------------------------------------------------------
--- storage : optional cover-image uploads, filed under the organiser's user id
+-- storage : optional cover-image uploads, filed under the organiser's user id.
+-- The bucket is public, so images load by URL (getPublicUrl) with no SELECT
+-- policy — and without one, nobody can list/enumerate the bucket's contents.
 -- ---------------------------------------------------------------------------
 insert into storage.buckets (id, name, public)
 values ('event-images', 'event-images', true)
 on conflict (id) do nothing;
 
-create policy "event images are publicly readable" on storage.objects
-  for select using (bucket_id = 'event-images');
 create policy "authenticated uploads to own folder" on storage.objects
   for insert to authenticated
   with check (
     bucket_id = 'event-images'
-    and (storage.foldername(name))[1] = auth.uid()::text
+    and (storage.foldername(name))[1] = (select auth.uid())::text
   );
 create policy "authenticated updates own folder" on storage.objects
   for update to authenticated
   using (
     bucket_id = 'event-images'
-    and (storage.foldername(name))[1] = auth.uid()::text
+    and (storage.foldername(name))[1] = (select auth.uid())::text
   );
 
 -- ============================================================================
