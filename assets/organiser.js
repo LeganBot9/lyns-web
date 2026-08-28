@@ -1,5 +1,5 @@
 import { sb } from "./supabase.js";
-import { esc, coverFor, fmtDate, fmtTime } from "./ui.js";
+import { esc, coverFor, whenShort, recurTag } from "./ui.js";
 import { eventFormHTML, bindEventForm, readEventForm, uploadCover } from "./eventform.js";
 
 const view = document.getElementById("view");
@@ -154,9 +154,9 @@ async function loadMine(user) {
     <div class="qitem">
       <img src="${coverFor(ev)}" alt="">
       <div>
-        <div class="q-cat">${esc(ev.category)} &nbsp; ${PILL(ev.status)}</div>
+        <div class="q-cat">${esc(ev.category)}${recurTag(ev) ? " &middot; " + recurTag(ev) : ""} &nbsp; ${PILL(ev.status)}</div>
         <div class="q-title">${esc(ev.title)}</div>
-        <div class="q-meta">${fmtDate(ev.starts_at)}, ${ev.time_label ? esc(ev.time_label) : fmtTime(ev.starts_at)} &middot; ${esc(ev.venue)} &middot; ${esc(ev.price)}</div>
+        <div class="q-meta">${esc(whenShort(ev))} &middot; ${esc(ev.venue)} &middot; ${esc(ev.price)}</div>
       </div>
     </div>`).join("");
 }

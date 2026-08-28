@@ -5,6 +5,7 @@ export const CATS = ["Music", "Nightlife", "Outdoors", "Sport", "Arts", "Markets
 export const CATS_WITH_ALL = ["All", ...CATS];
 
 const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const DOW_PLURAL = ["Sundays", "Mondays", "Tuesdays", "Wednesdays", "Thursdays", "Fridays", "Saturdays"];
 const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 export function fmtDate(iso) {
@@ -15,8 +16,62 @@ export function fmtTime(iso) {
   const d = new Date(iso);
   return d.toTimeString().slice(0, 5);
 }
+
+function midnight(d) { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; }
+
+// The date an event next actually happens. For weekly/monthly events this rolls
+// the stored starts_at forward to the next occurrence (keeping time of day).
+export function effectiveStart(ev) {
+  const base = new Date(ev.starts_at);
+  const rec = ev.recurrence || "none";
+  const today = midnight(new Date());
+  if (rec === "none" || base >= today) return base;
+  const d = new Date(base);
+  if (rec === "weekly") {
+    const WEEK = 7 * 86400000;
+    const steps = Math.ceil((today - d) / WEEK);
+    return new Date(d.getTime() + steps * WEEK);
+  }
+  if (rec === "monthly") {
+    while (d < today) d.setMonth(d.getMonth() + 1);
+    return d;
+  }
+  return base;
+}
+
+export function timeOf(ev) {
+  return ev.time_label || fmtTime(ev.starts_at);
+}
+
+function relDay(d) {
+  const diff = Math.round((midnight(d) - midnight(new Date())) / 86400000);
+  if (diff === 0) return "today";
+  if (diff === 1) return "tomorrow";
+  return fmtDate(d);
+}
+
+// compact label for the collapsed card and list rows
+export function whenShort(ev) {
+  const rec = ev.recurrence || "none";
+  if (rec === "weekly") return DOW_PLURAL[new Date(ev.starts_at).getDay()];
+  if (rec === "monthly") return "Monthly";
+  return relDay(effectiveStart(ev));
+}
+
+// full label for the expanded card
 export function whenLabel(ev) {
-  return ev.time_label ? `${fmtDate(ev.starts_at)}, ${ev.time_label}` : `${fmtDate(ev.starts_at)}, ${fmtTime(ev.starts_at)}`;
+  const rec = ev.recurrence || "none";
+  const t = timeOf(ev);
+  if (rec === "none") return `${fmtDate(effectiveStart(ev))}, ${t}`;
+  const rd = relDay(effectiveStart(ev));
+  const next = rd === "today" || rd === "tomorrow" ? rd : `next ${rd}`;
+  const head = rec === "weekly" ? DOW_PLURAL[new Date(ev.starts_at).getDay()] : "Monthly";
+  return `${head}, ${t} · ${next}`;
+}
+
+export function recurTag(ev) {
+  const rec = ev.recurrence || "none";
+  return rec === "weekly" ? "weekly" : rec === "monthly" ? "monthly" : "";
 }
 
 export function esc(s) {
@@ -28,7 +83,8 @@ export function esc(s) {
 export function startOfTodayISO() {
   const d = new Date();
   d.setHours(0, 0, 0, 0);
-  return d.toISOString();
+  // no milliseconds — the "." breaks PostgREST .or() filter parsing
+  return d.toISOString().replace(/\.\d+Z$/, "Z");
 }
 
 // Half-hour + quarter-hour options for the time dropdown, 06:00 -> 03:45 next day
@@ -121,13 +177,15 @@ export function feedCardHTML(ev, { saved = false, open = false, index = 0 } = {}
   const ticket = ev.ticket_url
     ? `<a class="btn solid" href="${esc(ev.ticket_url)}" target="_blank" rel="noopener">Get tickets</a>`
     : `<span class="btn ghost">Free &mdash; just show up</span>`;
+  const rt = recurTag(ev);
+  const eyebrow = esc(ev.category) + (rt ? ` &middot; <span class="recur">${rt}</span>` : "");
   return `<article class="card${open ? " open" : ""}" data-id="${esc(ev.id)}" style="--i:${index}">
     <button class="card-head" type="button" aria-expanded="${open}">
       <img class="card-media" src="${coverFor(ev)}" alt="" loading="lazy">
       <span class="card-copy">
-        <span class="cat">${esc(ev.category)}</span>
+        <span class="cat">${eyebrow}</span>
         <span class="card-title">${esc(ev.title)}</span>
-        <span class="card-sub">${fmtDate(ev.starts_at)} &middot; ${esc(ev.venue)}</span>
+        <span class="card-sub">${esc(whenShort(ev))} &middot; ${esc(ev.venue)}</span>
       </span>
     </button>
     <button class="bkm${saved ? " on" : ""}" type="button" data-save

@@ -1,5 +1,5 @@
 import { sb } from "./supabase.js";
-import { esc, coverFor, fmtDate, fmtTime, whenLabel } from "./ui.js";
+import { esc, coverFor, whenLabel, whenShort, recurTag } from "./ui.js";
 import { eventFormHTML, bindEventForm, readEventForm, uploadCover } from "./eventform.js";
 
 const view = document.getElementById("view");
@@ -146,9 +146,9 @@ async function renderLive() {
     <div class="qitem" data-ev="${esc(ev.id)}">
       <img src="${coverFor(ev)}" alt="">
       <div>
-        <div class="q-cat">${esc(ev.category)} <span class="q-live">live</span></div>
+        <div class="q-cat">${esc(ev.category)}${recurTag(ev) ? " &middot; " + recurTag(ev) : ""} <span class="q-live">live</span></div>
         <div class="q-title">${esc(ev.title)}</div>
-        <div class="q-meta">${fmtDate(ev.starts_at)}, ${ev.time_label ? esc(ev.time_label) : fmtTime(ev.starts_at)} &middot; ${esc(ev.venue)}</div>
+        <div class="q-meta">${esc(whenShort(ev))} &middot; ${esc(ev.venue)}</div>
       </div>
       <div class="q-actions"><button class="btn line mini" data-act="ev-archive">Take down</button></div>
     </div>`).join("")}</div>`;

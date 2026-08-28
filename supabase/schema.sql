@@ -79,8 +79,10 @@ create table public.events (
   title        text not null,
   category     text not null
                check (category in ('Music','Nightlife','Outdoors','Sport','Arts','Markets')),
-  starts_at    timestamptz not null,
+  starts_at    timestamptz not null,   -- for a recurring event: the next occurrence
   time_label   text,
+  recurrence   text not null default 'none'
+               check (recurrence in ('none','weekly','monthly')),
   venue        text not null,
   area         text not null default 'Stellenbosch',
   price        text not null,

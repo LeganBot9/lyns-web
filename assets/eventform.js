@@ -33,6 +33,16 @@ export function eventFormHTML({ submitLabel = "Submit for review" } = {}) {
     </div>
 
     <div class="field">
+      <label for="ef-repeat">Repeats</label>
+      <select id="ef-repeat" name="recurrence">
+        <option value="none">Just once</option>
+        <option value="weekly">Every week</option>
+        <option value="monthly">Every month</option>
+      </select>
+      <span class="hint">For a weekly run or quiz, set the date to the next time it happens — the app rolls it forward after that.</span>
+    </div>
+
+    <div class="field">
       <label for="ef-timelabel">Time shown to people <span class="hint">(optional)</span></label>
       <input id="ef-timelabel" name="time_label" maxlength="40" placeholder="e.g. 22:00 – late">
     </div>
@@ -105,6 +115,8 @@ export function readEventForm(form) {
   const starts_at = new Date(`${date}T${time}`).toISOString();
   const ticket = f.ticket_url.value.trim();
 
+  const recurrence = ["none", "weekly", "monthly"].includes(f.recurrence.value) ? f.recurrence.value : "none";
+
   return {
     values: {
       title,
@@ -115,6 +127,7 @@ export function readEventForm(form) {
       price,
       description: f.description.value.trim() || null,
       ticket_url: ticket || null,
+      recurrence,
     },
     file: f.image.files[0] || null,
   };

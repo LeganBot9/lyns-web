@@ -1,7 +1,7 @@
 import { sb } from "./supabase.js";
 import { CITY } from "./config.js";
 import {
-  CATS_WITH_ALL, feedCardHTML, esc, startOfTodayISO,
+  CATS_WITH_ALL, feedCardHTML, esc, startOfTodayISO, effectiveStart,
 } from "./ui.js";
 
 const view = document.getElementById("view");
@@ -36,14 +36,22 @@ function settle() {
 }
 
 async function loadEvents() {
-  const { data, error } = await sb
+  // one-time events from today onward, plus every recurring event
+  let { data, error } = await sb
     .from("events")
     .select("*")
     .eq("status", "approved")
-    .gte("starts_at", startOfTodayISO())
-    .order("starts_at", { ascending: true });
+    .or(`recurrence.neq.none,starts_at.gte.${startOfTodayISO()}`);
+  if (error) {
+    // recurrence column not migrated yet — fall back to plain upcoming
+    ({ data, error } = await sb
+      .from("events")
+      .select("*")
+      .eq("status", "approved")
+      .gte("starts_at", startOfTodayISO()));
+  }
   if (error) { console.error(error); return []; }
-  return data || [];
+  return (data || []).sort((a, b) => effectiveStart(a) - effectiveStart(b));
 }
 
 function renderDiscover() {
