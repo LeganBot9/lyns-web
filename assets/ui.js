@@ -11,10 +11,10 @@ export const RESIDENCES = [
   "Dagbreek", "Eendrag", "Helderberg", "Helshoogte", "Huis Marais", "Huis Visser",
   "Majuba", "Pieke", "Simonsberg", "Wilgenhof",
   // women's
-  "Harmonie", "Heemstede", "Huis Neethling", "Huis ten Bosch", "Irene", "Lydia",
-  "Minerva", "Monica", "Nemesia", "Serruria", "Sonop",
+  "Erica", "Harmonie", "Heemstede", "Huis Neethling", "Huis ten Bosch", "Irene",
+  "Lydia", "Minerva", "Monica", "Nemesia", "Nerina", "Serruria", "Sonop",
   // co-ed
-  "Academia", "Concordia", "Goldfields", "Huis McDonald", "Metanoia", "Nerina",
+  "Academia", "Concordia", "Goldfields", "Huis McDonald", "Khayalethu", "Metanoia",
   "Russel Botman House", "Silene", "Venustia",
   // Tygerberg campus
   "Hippokrates", "Meerhoff", "Osler",
