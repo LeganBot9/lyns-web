@@ -1,7 +1,7 @@
 import { sb } from "./supabase.js";
 import { CITY } from "./config.js";
 import {
-  CATS_WITH_ALL, feedCardHTML, esc, startOfTodayISO, effectiveStart,
+  CATS_WITH_ALL, RESIDENCES, feedCardHTML, esc, startOfTodayISO, effectiveStart,
   occursOn, fmtDate,
 } from "./ui.js";
 
@@ -111,8 +111,8 @@ function paintFeed() {
 
 function renderDiscover() {
   const onDate = state.date ? new Date(state.date + "T00:00:00") : null;
-  const residences = [...new Set(state.events.map((e) => e.residence).filter(Boolean))].sort();
-  if (state.residence && !residences.includes(state.residence)) state.residence = null;
+  // every SU residence, plus anything an organiser typed that isn't on the list
+  const residences = [...new Set([...RESIDENCES, ...state.events.map((e) => e.residence).filter(Boolean)])].sort();
 
   const dateChip =
     `<span class="chip chip-date${state.date ? " on" : ""}" id="dateChip" role="button" tabindex="0">
@@ -123,12 +123,11 @@ function renderDiscover() {
   const catChips = CATS_WITH_ALL.map((c) =>
     `<button class="chip" type="button" data-cat="${c}" aria-pressed="${state.cat === c}">${c}</button>`
   ).join("");
-  const resChip = residences.length
-    ? `<select class="chip chip-select${state.residence ? " on" : ""}" id="resPick" aria-label="Residence">
-         <option value="">Residence</option>
-         ${residences.map((r) => `<option value="${esc(r)}"${state.residence === r ? " selected" : ""}>${esc(r)}</option>`).join("")}
-       </select>`
-    : "";
+  const resChip =
+    `<select class="chip chip-select${state.residence ? " on" : ""}" id="resPick" aria-label="Residence">
+       <option value="">Residence</option>
+       ${residences.map((r) => `<option value="${esc(r)}"${state.residence === r ? " selected" : ""}>${esc(r)}</option>`).join("")}
+     </select>`;
 
   view.innerHTML =
     `<section class="hero"><h1>What do you want to <em>do</em>?</h1><p>${subText(filteredList())}</p></section>
