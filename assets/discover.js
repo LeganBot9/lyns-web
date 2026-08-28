@@ -77,20 +77,22 @@ function renderDiscover() {
       new Date(a.starts_at).toTimeString().localeCompare(new Date(b.starts_at).toTimeString()));
   }
 
-  const chips = CATS_WITH_ALL.map((c) =>
-    `<button class="chip" type="button" data-cat="${c}" aria-pressed="${state.cat === c}">${c}</button>`
-  ).join("") +
+  const dateChip =
     `<span class="chip chip-date${state.date ? " on" : ""}" id="dateChip" role="button" tabindex="0">
        ${ICON_CAL}<span class="cd-label">${state.date ? esc(fmtDate(onDate)) : "Day"}</span>
        ${state.date ? `<button type="button" id="dateClear" aria-label="Clear day">&times;</button>` : ""}
        <input type="date" id="datePick" min="${todayStr()}" value="${state.date || ""}" aria-label="Pick a day" tabindex="-1">
-     </span>` +
-    (residences.length
-      ? `<select class="chip chip-select${state.residence ? " on" : ""}" id="resPick" aria-label="Residence">
-           <option value="">Residence</option>
-           ${residences.map((r) => `<option value="${esc(r)}"${state.residence === r ? " selected" : ""}>${esc(r)}</option>`).join("")}
-         </select>`
-      : "");
+     </span>`;
+  const catChips = CATS_WITH_ALL.map((c) =>
+    `<button class="chip" type="button" data-cat="${c}" aria-pressed="${state.cat === c}">${c}</button>`
+  ).join("");
+  const resChip = residences.length
+    ? `<select class="chip chip-select${state.residence ? " on" : ""}" id="resPick" aria-label="Residence">
+         <option value="">Residence</option>
+         ${residences.map((r) => `<option value="${esc(r)}"${state.residence === r ? " selected" : ""}>${esc(r)}</option>`).join("")}
+       </select>`
+    : "";
+  const chips = dateChip + catChips + resChip;
 
   const count = list.length;
   let sub;

@@ -1,7 +1,8 @@
 // Shared helpers: categories, date/time formatting, generated cover images,
 // and the event-card markup used on the public feed.
 
-export const CATS = ["Music", "Nightlife", "Outdoors", "Sport", "Arts", "Markets"];
+// display order for the filter chips
+export const CATS = ["Sport", "Nightlife", "Music", "Outdoors", "Arts", "Markets"];
 export const CATS_WITH_ALL = ["All", ...CATS];
 
 // Stellenbosch University residences — a suggestion list, organisers can type any.
