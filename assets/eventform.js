@@ -2,9 +2,23 @@
 import { sb } from "./supabase.js";
 import { CATS, timeOptions, RESIDENCES } from "./ui.js";
 
-function todayStr() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const MONTHS = ["January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"];
+// (native <input type=date> replaced with 3 dropdowns — reliable on every phone)
+
+function dateSelects() {
+  const now = new Date();
+  const years = [now.getFullYear(), now.getFullYear() + 1];
+  const days = Array.from({ length: 31 }, (_, i) => i + 1)
+    .map((d) => `<option value="${d}">${d}</option>`).join("");
+  const months = MONTHS
+    .map((m, i) => `<option value="${String(i + 1).padStart(2, "0")}">${m}</option>`).join("");
+  const yrs = years.map((y) => `<option value="${y}">${y}</option>`).join("");
+  return `<div class="date3">
+    <select name="d_day" required aria-label="Day"><option value="">Day</option>${days}</select>
+    <select name="d_month" required aria-label="Month"><option value="">Month</option>${months}</select>
+    <select name="d_year" required aria-label="Year"><option value="">Year</option>${yrs}</select>
+  </div>`;
 }
 
 export function eventFormHTML({ submitLabel = "Submit for review" } = {}) {
@@ -32,8 +46,8 @@ export function eventFormHTML({ submitLabel = "Submit for review" } = {}) {
     </div>
 
     <div class="field">
-      <label for="ef-date">Date</label>
-      <input id="ef-date" name="date" type="date" required min="${todayStr()}">
+      <label>Date</label>
+      ${dateSelects()}
     </div>
 
     <div class="field">
@@ -122,11 +136,19 @@ export function readEventForm(form) {
   const f = form.elements;
   const title = f.title.value.trim();
   const venue = f.venue.value.trim();
-  const date = f.date.value;
   const time = f.time.value;
   if (!title) return { error: "Add an event name." };
   if (!venue) return { error: "Add a venue." };
-  if (!date) return { error: "Pick a date." };
+
+  const dd = f.d_day.value, mm = f.d_month.value, yy = f.d_year.value;
+  if (!dd || !mm || !yy) return { error: "Pick the day, month and year." };
+  const date = `${yy}-${mm}-${String(dd).padStart(2, "0")}`;
+  const check = new Date(`${date}T00:00:00`);
+  if (isNaN(check) || check.getDate() !== Number(dd)) {
+    return { error: `That date doesn't exist — ${MONTHS[Number(mm) - 1]} only has ${new Date(yy, Number(mm), 0).getDate()} days.` };
+  }
+  const todayMid = new Date(); todayMid.setHours(0, 0, 0, 0);
+  if (check < todayMid) return { error: "That date is in the past." };
   if (!time) return { error: "Pick a start time." };
 
   let price;
