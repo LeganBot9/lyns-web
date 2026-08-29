@@ -192,7 +192,7 @@ function renderPost() {
          and reach students looking for something to do.</p>
       <a class="btn solid block" href="/organiser">Get started</a>
       <p class="muted-row">Already an organiser? The same link takes you to sign in.</p>
-      <p class="muted-row"><a href="/privacy.html">Privacy policy</a></p>
+      <p class="muted-row"><a href="/privacy">Privacy policy</a></p>
     </div>`;
   view.scrollTop = 0;
 }

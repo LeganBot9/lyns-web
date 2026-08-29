@@ -3,7 +3,7 @@
 // wrappers require one). It caches nothing except a small offline page, so it
 // can never serve stale content — every request goes to the network.
 const CACHE = "lyns-v3";
-const OFFLINE_URL = "/offline.html";
+const OFFLINE_URL = "/offline";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((c) => c.add(OFFLINE_URL)));
