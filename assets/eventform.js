@@ -83,12 +83,15 @@ export function eventFormHTML({ submitLabel = "Submit for review" } = {}) {
 
     <div class="field">
       <label>Price</label>
-      <label class="check"><input type="checkbox" id="ef-free" name="free"> Free entry</label>
-      <div class="rand">
+      <div class="segmented" role="group" aria-label="Price">
+        <button type="button" class="seg is-on" data-free="1" aria-pressed="true">Free entry</button>
+        <button type="button" class="seg" data-free="0" aria-pressed="false">Ticketed</button>
+      </div>
+      <input type="hidden" id="ef-free" name="free" value="1">
+      <div class="rand" id="ef-rand" hidden>
         <span>R</span>
         <input id="ef-price" name="price" type="number" min="0" step="1" inputmode="numeric" placeholder="80">
       </div>
-      <span class="hint">Whole rand only. Tick “Free entry” if there’s no charge.</span>
     </div>
 
     <div class="field">
@@ -106,11 +109,24 @@ export function eventFormHTML({ submitLabel = "Submit for review" } = {}) {
 }
 
 export function bindEventForm(form) {
+  // price: Free / Ticketed segmented toggle
   const free = form.querySelector("#ef-free");
   const price = form.querySelector("#ef-price");
-  const sync = () => { price.disabled = free.checked; if (free.checked) price.value = ""; };
-  free.addEventListener("change", sync);
-  sync();
+  const rand = form.querySelector("#ef-rand");
+  const segs = form.querySelectorAll(".segmented .seg");
+  const setMode = (isFree) => {
+    free.value = isFree ? "1" : "0";
+    rand.hidden = isFree;
+    if (isFree) price.value = "";
+    segs.forEach((s) => {
+      const on = (s.dataset.free === "1") === isFree;
+      s.classList.toggle("is-on", on);
+      s.setAttribute("aria-pressed", String(on));
+    });
+    if (!isFree) price.focus();
+  };
+  segs.forEach((s) => s.addEventListener("click", () => setMode(s.dataset.free === "1")));
+  setMode(free.value === "1");
 
   // cover photo preview
   const input = form.querySelector("#ef-image");
@@ -152,13 +168,13 @@ export function readEventForm(form) {
   if (!time) return { error: "Pick a start time." };
 
   let price;
-  if (f.free.checked) {
+  if (f.free.value === "1") {
     price = "Free";
   } else {
     const raw = f.price.value.trim();
     const n = Number(raw);
     if (!raw || !Number.isFinite(n) || n < 0 || !Number.isInteger(n)) {
-      return { error: "Price must be a whole number of rand, or tick “Free entry”." };
+      return { error: "Enter a whole number of rand, or switch to “Free entry”." };
     }
     price = "R" + n;
   }

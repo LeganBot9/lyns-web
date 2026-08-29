@@ -259,13 +259,18 @@ form.stack{padding:20px 22px 40px;display:flex;flex-direction:column;gap:16px}
 .link-btn{align-self:flex-start;background:none;border:0;padding:0;cursor:pointer;
   font:inherit;font-size:12px;font-weight:700;color:var(--navy-2);text-decoration:underline}
 .link-btn:hover{color:var(--ink)}
-.check{display:flex;align-items:center;gap:9px;font-size:13.5px;color:var(--ink);
-  font-weight:500;letter-spacing:0;text-transform:none;cursor:pointer}
-.check input{width:auto;accent-color:var(--navy)}
-.rand{display:flex;align-items:center;gap:8px}
-.rand>span{font-size:15px;font-weight:600;color:var(--navy-2)}
-.rand input{max-width:140px}
-.rand input:disabled{opacity:.4}
+/* Free / Ticketed toggle — big tap targets */
+.segmented{display:grid;grid-template-columns:1fr 1fr;gap:6px;
+  background:var(--recess);border:1px solid var(--line);border-radius:12px;padding:4px}
+.seg{appearance:none;-webkit-appearance:none;border:0;background:none;cursor:pointer;
+  font:inherit;font-size:15px;font-weight:600;color:var(--navy-2);
+  padding:12px 8px;border-radius:9px;min-height:46px;transition:background .15s,color .15s}
+.seg.is-on{background:var(--navy);color:var(--paper)}
+.seg:active{transform:none}
+.rand{display:flex;align-items:center;gap:8px;margin-top:10px}
+.rand>span{font-size:16px;font-weight:600;color:var(--navy-2)}
+.rand input{max-width:160px}
+.rand[hidden]{display:none}
 
 input:focus-visible,select:focus-visible,textarea:focus-visible,
 .btn:focus-visible,.chip:focus-visible,.tab:focus-visible,.back:focus-visible,
