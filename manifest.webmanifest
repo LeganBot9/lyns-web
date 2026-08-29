@@ -10,6 +10,7 @@
   "display": "standalone",
   "display_override": ["standalone"],
   "orientation": "portrait",
+  "prefer_related_applications": false,
   "background_color": "#0C1A2C",
   "theme_color": "#12233B",
   "categories": ["lifestyle", "events", "social"],
