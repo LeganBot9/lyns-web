@@ -1,8 +1,10 @@
-// Register the service worker so LYNS is installable as an app.
+// No service worker for now. Actively tear down any that a previous version
+// registered, plus its caches — those were the cause of stale content.
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").catch((err) => {
-      console.warn("LYNS: service worker registration failed", err);
-    });
-  });
+  navigator.serviceWorker.getRegistrations()
+    .then((regs) => regs.forEach((r) => r.unregister()))
+    .catch(() => {});
+}
+if (window.caches && caches.keys) {
+  caches.keys().then((keys) => keys.forEach((k) => caches.delete(k))).catch(() => {});
 }
