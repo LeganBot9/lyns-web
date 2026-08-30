@@ -1,5 +1,5 @@
 import { sb } from "./supabase.js";
-import { esc, coverFor, whenLabel, whenShort, recurTag } from "./ui.js";
+import { esc, coverFor, whenLabel, whenShort, recurTag, startOfTodayISO } from "./ui.js";
 import { eventFormHTML, bindEventForm, readEventForm, uploadCover } from "./eventform.js";
 import { uploadImage } from "./photo.js";
 
@@ -150,8 +150,12 @@ function eventRow(ev, orgName) {
 async function renderLive() {
   view.innerHTML = shell(`<div id="q"><p class="q-plain" style="padding:14px 22px">Loading…</p></div>`);
   bindShell();
+  // approved, and either recurring or still upcoming (past one-offs are hidden
+  // here right away; the daily job archives them for good)
   const { data, error } = await sb.from("events").select("*")
-    .eq("status", "approved").order("starts_at", { ascending: true });
+    .eq("status", "approved")
+    .or(`recurrence.neq.none,starts_at.gte.${startOfTodayISO()}`)
+    .order("starts_at", { ascending: true });
   const box = document.getElementById("q");
   if (error) { box.innerHTML = `<p class="q-plain" style="padding:14px 22px">${esc(error.message)}</p>`; return; }
   if (!data.length) { box.innerHTML = `<p class="q-plain" style="padding:14px 22px">Nothing live right now.</p>`; return; }

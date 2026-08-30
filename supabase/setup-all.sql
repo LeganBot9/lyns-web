@@ -197,6 +197,26 @@ using (
 ) d
 where e.id = d.id and d.rn > 1;
 
+-- ---- 7. auto-archive past events (daily job) ---------------------------
+create extension if not exists pg_cron;
+
+create or replace function public.archive_past_events()
+returns integer language plpgsql security definer set search_path = public
+as $$
+declare n integer;
+begin
+  update public.events set status = 'archived'
+  where status in ('approved','pending')
+    and recurrence = 'none'
+    and starts_at < date_trunc('day', now());
+  get diagnostics n = row_count;
+  return n;
+end; $$;
+
+select cron.schedule('lyns-archive-past-events', '0 3 * * *',
+  $$ select public.archive_past_events(); $$);
+select public.archive_past_events();
+
 -- ---- done — quick check --------------------------------------------------
 select
   (select count(*) from public.admins) as admins,
