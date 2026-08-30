@@ -5,9 +5,21 @@ import {
   occursOn, fmtDate,
 } from "./ui.js";
 
-function todayStr() {
-  const d = new Date();
+function isoOf(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+// A plain <select> of upcoming days — works on every browser, no date-picker.
+function dayOptions(selected) {
+  const t = new Date(); t.setHours(0, 0, 0, 0);
+  let html = `<option value="">Any day</option>`;
+  for (let i = 0; i < 21; i++) {
+    const d = new Date(t.getTime() + i * 86400000);
+    const iso = isoOf(d);
+    const label = i === 0 ? "Today" : i === 1 ? "Tomorrow" : fmtDate(d);
+    html += `<option value="${iso}"${selected === iso ? " selected" : ""}>${label}</option>`;
+  }
+  return html;
 }
 
 const view = document.getElementById("view");
@@ -28,8 +40,7 @@ function setSaved(a) {
 
 const state = { tab: "discover", cat: "All", date: null, residence: null, q: "", open: null, events: [] };
 
-const ICON_CAL = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9h18M8 2.5v4M16 2.5v4"/></svg>`;
-const ICON_MAG = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>`;
+const ICON_MAG =`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>`;
 const ICON_SEARCH = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>`;
 const ICON_BKM = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M6 4h12v16l-6-4-6 4z"/></svg>`;
 
@@ -115,11 +126,9 @@ function renderDiscover() {
   const residences = [...new Set([...RESIDENCES, ...state.events.map((e) => e.residence).filter(Boolean)])].sort();
 
   const dateChip =
-    `<span class="chip chip-date${state.date ? " on" : ""}" id="dateChip" role="button" tabindex="0">
-       ${ICON_CAL}<span class="cd-label">${state.date ? esc(fmtDate(onDate)) : "Day"}</span>
-       ${state.date ? `<button type="button" id="dateClear" aria-label="Clear day">&times;</button>` : ""}
-       <input type="date" id="datePick" min="${todayStr()}" value="${state.date || ""}" aria-label="Pick a day" tabindex="-1">
-     </span>`;
+    `<select class="chip chip-select${state.date ? " on" : ""}" id="datePick" aria-label="Day">
+       ${dayOptions(state.date)}
+     </select>`;
   const catChips = CATS_WITH_ALL.map((c) =>
     `<button class="chip" type="button" data-cat="${c}" aria-pressed="${state.cat === c}">${c}</button>`
   ).join("");
@@ -145,18 +154,7 @@ function renderDiscover() {
   paintFeed();
 
   const dp = document.getElementById("datePick");
-  const chipEl = document.getElementById("dateChip");
   if (dp) dp.addEventListener("change", () => { state.date = dp.value || null; state.open = null; renderDiscover(); });
-  if (chipEl) {
-    const openPicker = (e) => {
-      if (e.target.closest("#dateClear")) return;
-      try { dp.showPicker(); } catch { dp.focus(); }
-    };
-    chipEl.addEventListener("click", openPicker);
-    chipEl.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openPicker(e); } });
-  }
-  const dc = document.getElementById("dateClear");
-  if (dc) dc.addEventListener("click", (e) => { e.stopPropagation(); state.date = null; state.open = null; renderDiscover(); });
 
   const rp = document.getElementById("resPick");
   if (rp) rp.addEventListener("change", () => { state.residence = rp.value || null; state.open = null; renderDiscover(); });
