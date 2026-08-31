@@ -44,6 +44,8 @@ body{
   -webkit-font-smoothing:antialiased;
   line-height:1.5;
   min-height:100%;
+  touch-action:manipulation;          /* no double-tap-to-zoom */
+  -webkit-tap-highlight-color:transparent;
 }
 
 /* app shell: top bar + tab bar stay put, the feed scrolls. Body itself does
@@ -75,6 +77,10 @@ body{
   flex:0 0 auto;
   display:flex;align-items:center;justify-content:space-between;
   padding:18px 22px 14px;
+  /* clear the notch / Dynamic Island when installed to the home screen */
+  padding-top:calc(18px + env(safe-area-inset-top));
+  padding-left:calc(22px + env(safe-area-inset-left));
+  padding-right:calc(22px + env(safe-area-inset-right));
   border-bottom:1px solid var(--line);
 }
 .brand{
@@ -97,12 +103,14 @@ body{
 
 .scroll{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;
   -webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+/* on pages with no bottom tab bar, keep content off the home indicator */
+.app:not(:has(.tabbar)) .scroll{padding-bottom:env(safe-area-inset-bottom)}
 
 /* ---- hero ---- */
-.hero{padding:30px 22px 18px}
+.hero{padding:32px 22px 18px}
 .hero h1{
-  font-family:"Fraunces",Georgia,serif;font-weight:300;
-  font-size:clamp(28px,7.6vw,37px);line-height:1.1;letter-spacing:-.01em;
+  font-family:"Instrument Serif","Fraunces",Georgia,serif;font-weight:400;
+  font-size:clamp(34px,10vw,46px);line-height:1.06;letter-spacing:0;
   text-wrap:balance;color:var(--ink);
 }
 .hero h1 em{font-style:italic;color:var(--navy)}
@@ -284,7 +292,8 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--gold);outline-offse
 .status-pill.pending{color:var(--gold);border-color:color-mix(in srgb,var(--gold) 45%,var(--line))}
 
 /* ---- tab bar ---- */
-.tabbar{flex:0 0 auto;display:flex;border-top:1px solid var(--line);background:var(--paper)}
+.tabbar{flex:0 0 auto;display:flex;border-top:1px solid var(--line);background:var(--paper);
+  padding-bottom:env(safe-area-inset-bottom)}
 .tab{flex:1;background:none;border:0;font:inherit;font-size:11px;font-weight:700;
   letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:14px 0 16px;
   cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;text-decoration:none}
