@@ -170,6 +170,7 @@ async function renderLive() {
       <div class="q-actions">
         <button class="btn line mini" data-act="ev-photo">${ev.image_url ? "Change photo" : "Add photo"}</button>
         <button class="btn line mini" data-act="ev-archive">Take down</button>
+        <button class="btn danger mini" data-act="ev-delete">Delete</button>
         <input type="file" class="visually-hidden ev-photo-input" accept="image/png,image/jpeg,image/webp">
       </div>
     </div>`).join("")}</div>`;
@@ -178,11 +179,16 @@ async function renderLive() {
     input.addEventListener("change", async () => {
       const file = input.files[0];
       if (!file) return;
+      if (!state.isAdmin) { flash("You're not signed in as an admin."); return; }
       const id = input.closest("[data-ev]").dataset.ev;
       flash("Uploading photo…");
       const url = await uploadImage(sb, "event-images", file, state.user.id, "cover-");
       if (!url) { flash("Upload failed"); return; }
-      const { error: e2 } = await sb.from("events").update({ image_url: url }).eq("id", id);
+      let e2 = (await sb.rpc("admin_set_event_image", { p_id: id, p_url: url })).error;
+      if (rpcMissing(e2)) {
+        const u = await sb.from("events").update({ image_url: url }).eq("id", id).select("id");
+        e2 = u.error || (!u.data?.length ? { message: "Not authorised." } : null);
+      }
       if (e2) { flash(e2.message); return; }
       flash("Photo updated");
       renderLive();
@@ -199,6 +205,7 @@ function renderAdd() {
   bindEventForm(form);
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
+    if (!state.isAdmin) { flash("You're not signed in as an admin."); return; }
     const parsed = readEventForm(form);
     if (parsed.error) { flash(parsed.error); return; }
     const btn = form.querySelector("#ef-submit");
@@ -233,6 +240,38 @@ function renderSection() {
 }
 
 // ---------- actions ----------
+const CONFIRMS = {
+  "ev-decline": "Decline this event? The organiser will see it was rejected.",
+  "ev-archive": "Take this event down? It will be hidden from the app (not deleted).",
+  "ev-delete": "Permanently DELETE this event? This cannot be undone.",
+  "org-decline": "Decline this organiser? They won't be able to post events.",
+  "org-suspend": "Pause this organiser? Their live events stay up but they can't post new ones.",
+};
+
+const rpcMissing = (err) =>
+  err && (err.code === "PGRST202" || /could not find the function|function .* does not exist/i.test(err.message || ""));
+
+// Prefer the guarded RPC; fall back to a direct write only if the guard SQL
+// isn't applied yet (RLS still protects the data either way).
+async function setEventStatus(id, status) {
+  const r = await sb.rpc("admin_set_event_status", { p_id: id, p_status: status });
+  if (!rpcMissing(r.error)) return r.error;
+  const patch = { status };
+  if (status === "approved") { patch.reviewed_at = new Date().toISOString(); patch.reviewed_by = state.user.id; }
+  const u = await sb.from("events").update(patch).eq("id", id).select("id");
+  if (u.error) return u.error;
+  if (!u.data || !u.data.length) return { message: "Not authorised — nothing was changed." };
+  return null;
+}
+async function setOrganiserStatus(id, status) {
+  const r = await sb.rpc("admin_set_organiser_status", { p_id: id, p_status: status });
+  if (!rpcMissing(r.error)) return r.error;
+  const u = await sb.from("organisers").update({ status }).eq("id", id).select("id");
+  if (u.error) return u.error;
+  if (!u.data || !u.data.length) return { message: "Not authorised — nothing was changed." };
+  return null;
+}
+
 view.addEventListener("click", async (e) => {
   const b = e.target.closest("[data-act]");
   if (!b) return;
@@ -244,28 +283,35 @@ view.addEventListener("click", async (e) => {
     return;
   }
 
+  // guard: never act unless this session is a confirmed admin
+  if (!state.isAdmin) { flash("You're not signed in as an admin."); return; }
+  if (CONFIRMS[act] && !window.confirm(CONFIRMS[act])) return;
+
   b.disabled = true;
   try {
+    let err;
     if (act === "org-approve" || act === "org-decline" || act === "org-suspend") {
-      const id = row.dataset.org;
-      const status = act === "org-approve" ? "approved" : "suspended";
-      const { error } = await sb.from("organisers").update({ status }).eq("id", id);
-      if (error) throw error;
+      err = await setOrganiserStatus(row.dataset.org, act === "org-approve" ? "approved" : "suspended");
+      if (err) throw err;
       flash(act === "org-approve" ? "Organiser approved" : act === "org-suspend" ? "Organiser paused" : "Organiser declined");
+    } else if (act === "ev-delete") {
+      const d = await sb.rpc("admin_delete_event", { p_id: row.dataset.ev });
+      if (rpcMissing(d.error)) {
+        const u = await sb.from("events").delete().eq("id", row.dataset.ev).select("id");
+        if (u.error) throw u.error;
+        if (!u.data || !u.data.length) throw { message: "Not authorised — nothing was deleted." };
+      } else if (d.error) throw d.error;
+      flash("Deleted");
     } else {
-      const id = row.dataset.ev;
       const map = { "ev-approve": "approved", "ev-decline": "declined", "ev-archive": "archived" };
-      const status = map[act];
-      const patch = { status };
-      if (act === "ev-approve") { patch.reviewed_at = new Date().toISOString(); patch.reviewed_by = state.user.id; }
-      const { error } = await sb.from("events").update(patch).eq("id", id);
-      if (error) throw error;
-      flash(act === "ev-approve" ? "Approved — it’s live" : act === "ev-decline" ? "Declined" : "Taken down");
+      err = await setEventStatus(row.dataset.ev, map[act]);
+      if (err) throw err;
+      flash(act === "ev-approve" ? "Approved — it's live" : act === "ev-decline" ? "Declined" : "Taken down");
     }
     row.style.opacity = "0.35";
     setTimeout(renderSection, 350);
   } catch (err) {
-    flash(err.message || "Something went wrong");
+    flash(err.message || "That didn't go through.");
     b.disabled = false;
   }
 });
@@ -279,10 +325,12 @@ async function signOut() { await sb.auth.signOut(); route(); }
 async function route() {
   const user = await currentUser();
   state.user = user;
+  state.isAdmin = false;
   if (!user) { screenLogin(); return; }
   const { data: isAdmin, error } = await sb.rpc("is_admin");
-  if (error) { flash(error.message); }
-  if (!isAdmin) { screenNoAccess(user); return; }
+  if (error) { flash(error.message); screenNoAccess(user); return; }
+  if (isAdmin !== true) { screenNoAccess(user); return; }
+  state.isAdmin = true;
   renderSection();
 }
 

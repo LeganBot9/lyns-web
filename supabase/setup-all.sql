@@ -217,6 +217,73 @@ select cron.schedule('lyns-archive-past-events', '0 3 * * *',
   $$ select public.archive_past_events(); $$);
 select public.archive_past_events();
 
+-- ---- 8. harden admin actions ----------------------------------------
+-- Every admin change goes through a function that checks is_admin() and logs.
+-- (Full comments in supabase/admin-guards.sql.)
+create table if not exists public.admin_log (
+  id bigint generated always as identity primary key,
+  at timestamptz not null default now(),
+  actor uuid, action text not null, target uuid, detail text
+);
+alter table public.admin_log enable row level security;
+drop policy if exists "admins read the log" on public.admin_log;
+create policy "admins read the log" on public.admin_log for select using (public.is_admin());
+
+create or replace function public._log_admin(p_action text, p_target uuid, p_detail text default null)
+returns void language sql security definer set search_path = public as $$
+  insert into public.admin_log (actor, action, target, detail)
+  values (auth.uid(), p_action, p_target, p_detail);
+$$;
+
+create or replace function public.admin_set_event_status(p_id uuid, p_status text)
+returns public.events language plpgsql security definer set search_path = public as $$
+declare r public.events;
+begin
+  if not public.is_admin() then raise exception 'Not authorised — you are not a LYNS admin.' using errcode = '42501'; end if;
+  if p_status not in ('approved','declined','archived','pending') then raise exception 'Invalid status: %', p_status; end if;
+  update public.events set status = p_status, reviewed_at = now(), reviewed_by = auth.uid()
+   where id = p_id returning * into r;
+  if r.id is null then raise exception 'Event not found.'; end if;
+  perform public._log_admin('event:' || p_status, p_id, r.title);
+  return r;
+end; $$;
+
+create or replace function public.admin_set_organiser_status(p_id uuid, p_status text)
+returns public.organisers language plpgsql security definer set search_path = public as $$
+declare r public.organisers;
+begin
+  if not public.is_admin() then raise exception 'Not authorised — you are not a LYNS admin.' using errcode = '42501'; end if;
+  if p_status not in ('pending','approved','suspended') then raise exception 'Invalid status: %', p_status; end if;
+  update public.organisers set status = p_status where id = p_id returning * into r;
+  if r.id is null then raise exception 'Organiser not found.'; end if;
+  perform public._log_admin('organiser:' || p_status, p_id, r.name);
+  return r;
+end; $$;
+
+create or replace function public.admin_set_event_image(p_id uuid, p_url text)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_admin() then raise exception 'Not authorised — you are not a LYNS admin.' using errcode = '42501'; end if;
+  update public.events set image_url = p_url where id = p_id;
+  if not found then raise exception 'Event not found.'; end if;
+  perform public._log_admin('event:image', p_id, p_url);
+end; $$;
+
+create or replace function public.admin_delete_event(p_id uuid)
+returns void language plpgsql security definer set search_path = public as $$
+declare r public.events;
+begin
+  if not public.is_admin() then raise exception 'Not authorised — you are not a LYNS admin.' using errcode = '42501'; end if;
+  delete from public.events where id = p_id returning * into r;
+  if r.id is null then raise exception 'Event not found.'; end if;
+  perform public._log_admin('event:deleted', p_id, r.title);
+end; $$;
+
+-- direct admin writes no longer needed from the client — remove the broad policies
+drop policy if exists "admin updates any event"   on public.events;
+drop policy if exists "admin deletes event"       on public.events;
+drop policy if exists "admin updates profiles"    on public.organisers;
+
 -- ---- done — quick check --------------------------------------------------
 select
   (select count(*) from public.admins) as admins,
