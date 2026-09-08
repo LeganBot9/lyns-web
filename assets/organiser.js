@@ -19,34 +19,102 @@ async function currentUser() {
 }
 
 // ---------- screens ----------
-function screenLogin() {
-  view.innerHTML = `
-    <div class="center-wrap">
-      <h1>Post your event on LYNS</h1>
-      <p>LYNS is where students around town look for something to do. Listing is free.
-         Every event is checked by us before it appears — it keeps the feed clean and worth opening.</p>
-      <form id="loginForm">
-        <div class="field">
-          <label for="email">Your email</label>
-          <input id="email" type="email" required placeholder="you@venue.co.za">
-        </div>
-        <button class="btn solid block" type="submit">Email me a sign-in link</button>
-      </form>
-      <p class="muted-row">Accounts are for organisers and venues only. There is no sign-up for people using the app.</p>
-    </div>`;
-  document.getElementById("loginForm").addEventListener("submit", async (e) => {
+const HEADS = {
+  signin: ["Sign in", "Post your events to LYNS. Listing is free — every event is checked before it goes live."],
+  signup: ["Create an organiser account", "For venues and event organisers. We verify you before you can post."],
+  forgot: ["Reset your password", "We'll email you a link to set a new one."],
+  magic:  ["Sign in with a link", "We'll email you a one-time sign-in link — no password needed."],
+};
+
+function authFormHTML(mode) {
+  const pw = (auto) => `<div class="field"><label for="password">${mode === "signup" ? "Choose a password" : "Password"}</label>
+      <input id="password" name="password" type="password" required minlength="8" autocomplete="${auto}">
+      ${mode === "signup" ? '<span class="hint">At least 8 characters.</span>' : ""}</div>`;
+  const email = `<div class="field"><label for="email">Email</label>
+      <input id="email" name="email" type="email" required autocomplete="email" placeholder="you@venue.co.za"></div>`;
+  if (mode === "signin") return `<form id="authForm" data-mode="signin">${email}${pw("current-password")}
+      <button class="btn solid block" type="submit">Sign in</button></form>
+      <p class="muted-row"><button type="button" class="linkbtn" data-go="forgot">Forgot password?</button></p>
+      <p class="muted-row">New here? <button type="button" class="linkbtn" data-go="signup">Create an account</button></p>
+      <p class="muted-row"><button type="button" class="linkbtn" data-go="magic">Email me a one-time link instead</button></p>`;
+  if (mode === "signup") return `<form id="authForm" data-mode="signup">${email}${pw("new-password")}
+      <button class="btn solid block" type="submit">Create account</button></form>
+      <p class="muted-row">Already have one? <button type="button" class="linkbtn" data-go="signin">Sign in</button></p>`;
+  if (mode === "forgot") return `<form id="authForm" data-mode="forgot">${email}
+      <button class="btn solid block" type="submit">Email me a reset link</button></form>
+      <p class="muted-row"><button type="button" class="linkbtn" data-go="signin">Back to sign in</button></p>`;
+  return `<form id="authForm" data-mode="magic">${email}
+      <button class="btn solid block" type="submit">Email me a sign-in link</button></form>
+      <p class="muted-row"><button type="button" class="linkbtn" data-go="signin">Use a password instead</button></p>`;
+}
+
+function infoScreen(title, html) {
+  view.innerHTML = `<div class="center-wrap"><h1>${title}</h1><p>${html}</p>
+    <p class="muted-row">Email is from <strong>lynsStellie@gmail.com</strong> — check spam if it's slow.
+    Still stuck? <a href="mailto:lynsStellie@gmail.com">lynsStellie@gmail.com</a></p></div>`;
+}
+
+function screenLogin(mode) {
+  mode = mode || "signin";
+  view.innerHTML = `<div class="center-wrap">
+    <h1>${HEADS[mode][0]}</h1><p>${HEADS[mode][1]}</p>
+    ${authFormHTML(mode)}
+    <p class="muted-row">Accounts are for organisers only — people browsing the app don't need one.</p>
+  </div>`;
+
+  view.querySelectorAll("[data-go]").forEach((b) =>
+    b.addEventListener("click", () => screenLogin(b.dataset.go)));
+
+  document.getElementById("authForm").addEventListener("submit", async (e) => {
     e.preventDefault();
-    const email = e.target.email.value.trim();
-    if (!email) return;
+    const f = e.target;
+    const email = f.email.value.trim();
+    const password = f.password ? f.password.value : "";
+    const btn = f.querySelector("button[type=submit]");
+    const label = btn.textContent;
+    btn.disabled = true; btn.textContent = "One sec…";
+    try {
+      if (f.dataset.mode === "signin") {
+        const { error } = await sb.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        route();
+      } else if (f.dataset.mode === "signup") {
+        const { data, error } = await sb.auth.signUp({ email, password, options: { emailRedirectTo: REDIRECT } });
+        if (error) throw error;
+        if (data.session) route();
+        else infoScreen("One more step", `We sent a confirmation link to <strong>${esc(email)}</strong>. Tap it, then come back and sign in.`);
+      } else if (f.dataset.mode === "forgot") {
+        const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: REDIRECT });
+        if (error) throw error;
+        infoScreen("Check your email", `We sent a reset link to <strong>${esc(email)}</strong>.`);
+      } else {
+        const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: REDIRECT } });
+        if (error) throw error;
+        infoScreen("Check your email", `One-time sign-in link sent to <strong>${esc(email)}</strong>. Open it on this device.`);
+      }
+    } catch (err) {
+      flash(err.message || "That didn't work.");
+      btn.disabled = false; btn.textContent = label;
+    }
+  });
+}
+
+function screenNewPassword() {
+  view.innerHTML = `<div class="center-wrap">
+    <h1>Set a new password</h1>
+    <form id="pwForm">
+      <div class="field"><label for="np">New password</label>
+        <input id="np" type="password" required minlength="8" autocomplete="new-password"></div>
+      <button class="btn solid block" type="submit">Save password</button>
+    </form></div>`;
+  document.getElementById("pwForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
     const btn = e.target.querySelector("button");
-    btn.disabled = true; btn.textContent = "Sending…";
-    const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: REDIRECT } });
-    if (error) { flash(error.message); btn.disabled = false; btn.textContent = "Email me a sign-in link"; return; }
-    view.innerHTML = `<div class="center-wrap">
-      <h1>Check your email</h1>
-      <p>We sent a sign-in link to <strong>${esc(email)}</strong>. Open it on this device to continue.</p>
-      <p class="muted-row">It comes from <strong>lynsStellie@gmail.com</strong> — check spam if it's not there in a minute. Still stuck? Email <a href="mailto:lynsStellie@gmail.com">lynsStellie@gmail.com</a>.</p>
-    </div>`;
+    btn.disabled = true; btn.textContent = "Saving…";
+    const { error } = await sb.auth.updateUser({ password: document.getElementById("np").value });
+    if (error) { flash(error.message); btn.disabled = false; btn.textContent = "Save password"; return; }
+    flash("Password saved — you're signed in");
+    route();
   });
 }
 
@@ -183,6 +251,7 @@ async function route() {
 }
 
 sb.auth.onAuthStateChange((event) => {
+  if (event === "PASSWORD_RECOVERY") { screenNewPassword(); return; }
   if (event === "SIGNED_IN" || event === "SIGNED_OUT") route();
 });
 route();
