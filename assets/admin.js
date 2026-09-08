@@ -42,7 +42,8 @@ function screenLogin() {
     const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: REDIRECT } });
     if (error) { flash(error.message); btn.disabled = false; btn.textContent = "Email me a sign-in link"; return; }
     view.innerHTML = `<div class="center-wrap"><h1>Check your email</h1>
-      <p>Sign-in link sent to <strong>${esc(email)}</strong>. Open it on this device.</p></div>`;
+      <p>Sign-in link sent to <strong>${esc(email)}</strong>. Open it on this device.</p>
+      <p class="muted-row">From <strong>lynsStellie@gmail.com</strong> — check spam if it doesn't arrive.</p></div>`;
   });
 }
 

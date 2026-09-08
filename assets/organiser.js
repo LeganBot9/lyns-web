@@ -45,6 +45,7 @@ function screenLogin() {
     view.innerHTML = `<div class="center-wrap">
       <h1>Check your email</h1>
       <p>We sent a sign-in link to <strong>${esc(email)}</strong>. Open it on this device to continue.</p>
+      <p class="muted-row">It comes from <strong>lynsStellie@gmail.com</strong> — check spam if it's not there in a minute. Still stuck? Email <a href="mailto:lynsStellie@gmail.com">lynsStellie@gmail.com</a>.</p>
     </div>`;
   });
 }
