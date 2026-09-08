@@ -106,7 +106,7 @@ function screenSuspended() {
   view.innerHTML = `
     <div class="center-wrap">
       <h1>Account paused</h1>
-      <p>Your organiser account is on hold. Reach out to LYNS on Instagram and we’ll sort it out.</p>
+      <p>Your organiser account is on hold. Email <a href="mailto:lynsStellie@gmail.com">lynsStellie@gmail.com</a> and we’ll sort it out.</p>
       <p class="muted-row"><button id="signout">Sign out</button></p>
     </div>`;
   document.getElementById("signout").addEventListener("click", signOut);
