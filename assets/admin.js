@@ -29,7 +29,7 @@ function screenLogin() {
       <p>Sign in with your LYNS email. This area only works for accounts on the admin list.</p>
       <form id="loginForm">
         <div class="field"><label for="email">Email</label>
-          <input id="email" type="email" required placeholder="you@lyns.co.za"></div>
+          <input id="email" type="email" required placeholder="you@lynsapp.co.za"></div>
         <button class="btn solid block" type="submit">Email me a sign-in link</button>
       </form>
     </div>`;

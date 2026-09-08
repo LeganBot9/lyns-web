@@ -49,7 +49,7 @@ under **Authentication → Emails → SMTP Settings** (then raise the limits und
   host `smtp.gmail.com`, port `465`, user + sender = your Gmail address, password = the app
   password. ~500/day. Fine for testing; mail comes "from" your personal address.
 - **Proper — Resend:** sign up at resend.com (3,000/month free), verify a domain (needs
-  `lyns.co.za`), create an SMTP credential, paste host `smtp.resend.com` port `465` + the key.
+  `lynsapp.co.za`), create an SMTP credential, paste host `smtp.resend.com` port `465` + the key.
   Branded "from" address, best deliverability.
 
 ## 2. Deploy to Vercel
@@ -97,7 +97,7 @@ rows. Times are stored in `Africa/Johannesburg`; the feed formats in the viewer'
 
 ## 5. Custom domain
 
-Buy `lyns.co.za` (or `lyns.app`) — [domains.co.za](https://domains.co.za), Namecheap, Cloudflare.
+Buy `lynsapp.co.za` (or `lyns.app`) — [domains.co.za](https://domains.co.za), Namecheap, Cloudflare.
 In Vercel: **Project → Settings → Domains →** add it and follow the DNS instructions. Then update
 the Supabase Site URL + Redirect URLs to the real domain.
 
