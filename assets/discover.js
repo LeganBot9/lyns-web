@@ -38,6 +38,8 @@ function setSaved(a) {
   try { localStorage.setItem("lyns.saved", JSON.stringify(a)); } catch {}
 }
 
+const RES_CAT = "Res events"; // chip: every residence event, any residence
+
 const state = { tab: "discover", cat: "All", date: null, residence: null, q: "", open: null, events: [] };
 
 const ICON_MAG =`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>`;
@@ -76,7 +78,9 @@ async function loadEvents() {
 function filteredList() {
   const q = state.q.trim().toLowerCase();
   let list = state.events.filter((e) =>
-    (state.cat === "All" || e.category === state.cat) &&
+    (state.cat === "All" ? true
+      : state.cat === RES_CAT ? !!e.residence
+      : e.category === state.cat) &&
     (!state.residence || e.residence === state.residence) &&
     (!state.date || occursOn(e, state.date)) &&
     (!q || `${e.title} ${e.venue} ${e.description || ""} ${e.residence || ""} ${e.category}`.toLowerCase().includes(q)));
@@ -91,11 +95,12 @@ function filteredList() {
 function subText(list) {
   const q = state.q.trim();
   if (q) return `${list.length} result${list.length === 1 ? "" : "s"} for “${esc(q)}”`;
-  if (state.date || state.residence) {
+  if (state.date || state.residence || state.cat === RES_CAT) {
+    const noun = state.cat === RES_CAT && !state.residence ? "residence event" : "thing";
     const where = state.residence ? ` at ${esc(state.residence)}` : "";
     const onDate = state.date ? new Date(state.date + "T00:00:00") : null;
     const when = state.date ? ` on ${fmtDate(onDate)}` : "";
-    return `${list.length} thing${list.length === 1 ? "" : "s"}${where}${when}`;
+    return `${list.length} ${noun}${list.length === 1 ? "" : "s"}${where}${when}`;
   }
   return `${state.events.length} thing${state.events.length === 1 ? "" : "s"} coming up around ${esc(CITY)}`;
 }
@@ -109,11 +114,14 @@ function paintFeed() {
   if (host) {
     host.innerHTML = list.length
       ? `<div class="feed">${list.map((e, i) => feedCardHTML(e, { saved: savedIds.has(e.id), open: state.open === e.id, index: i, onDate })).join("")}</div>`
-      : emptyHTML(ICON_SEARCH,
-          state.q ? "No matches" : (state.date || state.residence) ? "Nothing to show" : "Nothing here yet",
-          state.q ? "Try a different word, or clear the search." :
-          (state.date || state.residence) ? "Try clearing a filter to see more of what's on." :
-          "Try another category — new things are added through the week.");
+      : (() => {
+          const filtered = state.date || state.residence || state.cat === RES_CAT;
+          return emptyHTML(ICON_SEARCH,
+            state.q ? "No matches" : filtered ? "Nothing to show" : "Nothing here yet",
+            state.q ? "Try a different word, or clear the search." :
+            filtered ? "Try clearing a filter to see more of what's on." :
+            "Try another category — new things are added through the week.");
+        })();
     requestAnimationFrame(() => host.querySelector(".feed") && host.querySelector(".feed").classList.add("ready"));
   }
   const p = view.querySelector(".hero p");
@@ -129,8 +137,9 @@ function renderDiscover() {
     `<select class="chip chip-select${state.date ? " on" : ""}" id="datePick" aria-label="Day">
        ${dayOptions(state.date)}
      </select>`;
-  const catChips = CATS_WITH_ALL.map((c) =>
-    `<button class="chip" type="button" data-cat="${c}" aria-pressed="${state.cat === c}">${c}</button>`
+  const chipCats = ["All", RES_CAT, ...CATS_WITH_ALL.slice(1)];
+  const catChips = chipCats.map((c) =>
+    `<button class="chip" type="button" data-cat="${esc(c)}" aria-pressed="${state.cat === c}">${esc(c)}</button>`
   ).join("");
   const resChip =
     `<select class="chip chip-select${state.residence ? " on" : ""}" id="resPick" aria-label="Residence">
