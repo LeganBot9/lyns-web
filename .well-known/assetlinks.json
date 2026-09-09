@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "za.co.lynsapp.twa",
+    "sha256_cert_fingerprints": ["5E:BD:99:C2:CF:1D:A0:75:BC:DB:28:4C:B6:B1:2E:59:66:9E:10:E6:33:2A:6D:A0:CA:5F:02:32:DD:43:26:C5"]
+  }
+}]
