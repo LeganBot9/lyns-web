@@ -424,6 +424,22 @@ async function route() {
   if (!totp) { screenEnrollMfa(); return; }
   if (aal?.currentLevel !== "aal2") { screenVerifyMfa(totp.id); return; }
 
+  // factor lock: only the first authenticator ever verified is accepted
+  const lock = await sb.from("admin_mfa").select("factor_id").eq("user_id", user.id).maybeSingle();
+  if (!lock.error && lock.data && lock.data.factor_id !== totp.id) {
+    nav.hidden = true;
+    view.innerHTML = `<div class="center-wrap"><h1>Blocked</h1>
+      <p>An authenticator that isn't the registered one is on this account. If that wasn't you,
+         someone tried to add their own. Remove the extra factor in
+         <strong>Supabase → Authentication → Users</strong>, then sign in again.</p>
+      <p class="muted-row"><button id="signout">Sign out</button></p></div>`;
+    document.getElementById("signout").addEventListener("click", signOut);
+    return;
+  }
+  if (!lock.error && !lock.data) {
+    await sb.from("admin_mfa").insert({ user_id: user.id, factor_id: totp.id });
+  }
+
   state.isAdmin = true;
   renderSection();
 }

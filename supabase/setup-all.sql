@@ -241,6 +241,26 @@ as $$
      and coalesce(((select auth.jwt()) ->> 'aal'), 'aal1') = 'aal2';
 $$;
 
+-- factor lock: the FIRST authenticator ever verified is the only one that
+-- counts. Claimed once by the app; a row here can only be cleared from the
+-- Supabase dashboard, so a second authenticator can't be swapped in.
+create table if not exists public.admin_mfa (
+  user_id    uuid primary key references auth.users(id) on delete cascade,
+  factor_id  text not null,
+  claimed_at timestamptz not null default now()
+);
+alter table public.admin_mfa enable row level security;
+drop policy if exists "read own mfa lock" on public.admin_mfa;
+create policy "read own mfa lock" on public.admin_mfa
+  for select using (user_id = (select auth.uid()));
+drop policy if exists "claim mfa lock once" on public.admin_mfa;
+create policy "claim mfa lock once" on public.admin_mfa
+  for insert with check (
+    user_id = (select auth.uid())
+    and not exists (select 1 from public.admin_mfa m where m.user_id = (select auth.uid()))
+  );
+-- no update/delete policy: reset only from the dashboard / SQL editor.
+
 -- admin reads + the direct-add insert require 2FA
 drop policy if exists "admin reads all events" on public.events;
 create policy "admin reads all events" on public.events for select using (public.is_admin_mfa());
