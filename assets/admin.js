@@ -59,6 +59,71 @@ function screenNoAccess(user) {
   document.getElementById("signout").addEventListener("click", signOut);
 }
 
+// ---------- two-factor ----------
+async function screenEnrollMfa() {
+  nav.hidden = true;
+  view.innerHTML = `<div class="center-wrap"><h1>Set up two-factor</h1>
+    <p>Admin needs a second factor. Scan this in an authenticator app
+       (Google Authenticator, Authy, 1Password), then enter the 6-digit code it shows.</p>
+    <div id="mfaBox"><p class="muted-row">Preparing…</p></div>
+    <p class="muted-row"><button id="signout">Sign out</button></p></div>`;
+  document.getElementById("signout").addEventListener("click", signOut);
+
+  try {
+    // clear any half-finished factor first
+    const list = await sb.auth.mfa.listFactors();
+    for (const f of (list.data?.all || [])) {
+      if (f.factor_type === "totp" && f.status !== "verified") await sb.auth.mfa.unenroll({ factorId: f.id });
+    }
+    const { data, error } = await sb.auth.mfa.enroll({ factorType: "totp", friendlyName: "LYNS admin" });
+    if (error) throw error;
+    document.getElementById("mfaBox").innerHTML = `
+      <img src="${data.totp.qr_code}" alt="Authenticator QR code" style="width:180px;height:180px;background:#fff;border-radius:8px;padding:6px">
+      <p class="muted-row">Can't scan? Enter this key manually: <code>${esc(data.totp.secret)}</code></p>
+      <form id="mfaForm" style="width:100%">
+        <div class="field"><label for="code">6-digit code</label>
+          <input id="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" maxlength="6" required></div>
+        <button class="btn solid block" type="submit">Turn on two-factor</button>
+      </form>`;
+    document.getElementById("mfaForm").addEventListener("submit", (e) => verifyCode(e, data.id));
+  } catch (err) {
+    document.getElementById("mfaBox").innerHTML = `<p class="muted-row">${esc(err.message || "Couldn't start two-factor setup.")}</p>`;
+  }
+}
+
+function screenVerifyMfa(factorId) {
+  nav.hidden = true;
+  view.innerHTML = `<div class="center-wrap"><h1>Enter your code</h1>
+    <p>Open your authenticator app and enter the current 6-digit code for LYNS admin.</p>
+    <form id="mfaForm" style="width:100%">
+      <div class="field"><label for="code">6-digit code</label>
+        <input id="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" maxlength="6" required autofocus></div>
+      <button class="btn solid block" type="submit">Verify</button>
+    </form>
+    <p class="muted-row"><button id="signout">Sign out</button></p></div>`;
+  document.getElementById("signout").addEventListener("click", signOut);
+  document.getElementById("mfaForm").addEventListener("submit", (e) => verifyCode(e, factorId));
+}
+
+async function verifyCode(e, factorId) {
+  e.preventDefault();
+  const input = document.getElementById("code");
+  const code = input.value.replace(/\D/g, "");
+  const btn = e.target.querySelector("button");
+  btn.disabled = true; btn.textContent = "Checking…";
+  try {
+    const ch = await sb.auth.mfa.challenge({ factorId });
+    if (ch.error) throw ch.error;
+    const v = await sb.auth.mfa.verify({ factorId, challengeId: ch.data.id, code });
+    if (v.error) throw v.error;
+    route();
+  } catch (err) {
+    flash(err.message || "That code didn't work.");
+    btn.disabled = false; btn.textContent = "Verify";
+    input.value = ""; input.focus();
+  }
+}
+
 // ---------- admin sections ----------
 function shell(inner) {
   return `<div class="view-head">
@@ -328,9 +393,28 @@ async function route() {
   state.user = user;
   state.isAdmin = false;
   if (!user) { screenLogin(); return; }
+
   const { data: isAdmin, error } = await sb.rpc("is_admin");
   if (error) { flash(error.message); screenNoAccess(user); return; }
   if (isAdmin !== true) { screenNoAccess(user); return; }
+
+  // admin on the list — now require 2FA (aal2)
+  let aal, factors;
+  try {
+    aal = (await sb.auth.mfa.getAuthenticatorAssuranceLevel()).data;
+    factors = (await sb.auth.mfa.listFactors()).data;
+  } catch (e) {
+    nav.hidden = true;
+    view.innerHTML = `<div class="center-wrap"><h1>Couldn't verify</h1>
+      <p>Two-factor check failed. Reload the page. If it keeps happening, sign out and in again.</p>
+      <p class="muted-row"><button id="signout">Sign out</button></p></div>`;
+    document.getElementById("signout").addEventListener("click", signOut);
+    return;
+  }
+  const totp = (factors?.totp || []).find((f) => f.status === "verified");
+  if (!totp) { screenEnrollMfa(); return; }
+  if (aal?.currentLevel !== "aal2") { screenVerifyMfa(totp.id); return; }
+
   state.isAdmin = true;
   renderSection();
 }

@@ -284,6 +284,11 @@ drop policy if exists "admin updates any event"   on public.events;
 drop policy if exists "admin deletes event"       on public.events;
 drop policy if exists "admin updates profiles"    on public.organisers;
 
+-- ---- 9. two-factor for admin ------------------------------------------
+-- Run supabase/admin-mfa.sql after this — it swaps the admin checks above to
+-- require a passed 2FA session (aal2), so the admin queue needs magic-link
+-- sign-in PLUS a 6-digit authenticator code.
+
 -- ---- done — quick check --------------------------------------------------
 select
   (select count(*) from public.admins) as admins,
