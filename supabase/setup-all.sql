@@ -226,8 +226,6 @@ create table if not exists public.admin_log (
   actor uuid, action text not null, target uuid, detail text
 );
 alter table public.admin_log enable row level security;
-drop policy if exists "admins read the log" on public.admin_log;
-create policy "admins read the log" on public.admin_log for select using (public.is_admin());
 
 create or replace function public._log_admin(p_action text, p_target uuid, p_detail text default null)
 returns void language sql security definer set search_path = public as $$
@@ -235,11 +233,30 @@ returns void language sql security definer set search_path = public as $$
   values (auth.uid(), p_action, p_target, p_detail);
 $$;
 
+-- ---- 9. two-factor for admin: is_admin_mfa() = on the list AND passed 2FA --
+create or replace function public.is_admin_mfa()
+returns boolean language sql stable security invoker set search_path = ''
+as $$
+  select exists (select 1 from public.admins where user_id = (select auth.uid()))
+     and coalesce(((select auth.jwt()) ->> 'aal'), 'aal1') = 'aal2';
+$$;
+
+-- admin reads + the direct-add insert require 2FA
+drop policy if exists "admin reads all events" on public.events;
+create policy "admin reads all events" on public.events for select using (public.is_admin_mfa());
+drop policy if exists "admin reads all profiles" on public.organisers;
+create policy "admin reads all profiles" on public.organisers for select using (public.is_admin_mfa());
+drop policy if exists "admins read the log" on public.admin_log;
+create policy "admins read the log" on public.admin_log for select using (public.is_admin_mfa());
+drop policy if exists "admin adds event directly" on public.events;
+create policy "admin adds event directly" on public.events for insert with check (public.is_admin_mfa());
+
+-- every guarded write also requires 2FA
 create or replace function public.admin_set_event_status(p_id uuid, p_status text)
 returns public.events language plpgsql security definer set search_path = public as $$
 declare r public.events;
 begin
-  if not public.is_admin() then raise exception 'Not authorised — you are not a LYNS admin.' using errcode = '42501'; end if;
+  if not public.is_admin_mfa() then raise exception 'Admin 2FA required.' using errcode = '42501'; end if;
   if p_status not in ('approved','declined','archived','pending') then raise exception 'Invalid status: %', p_status; end if;
   update public.events set status = p_status, reviewed_at = now(), reviewed_by = auth.uid()
    where id = p_id returning * into r;
@@ -252,7 +269,7 @@ create or replace function public.admin_set_organiser_status(p_id uuid, p_status
 returns public.organisers language plpgsql security definer set search_path = public as $$
 declare r public.organisers;
 begin
-  if not public.is_admin() then raise exception 'Not authorised — you are not a LYNS admin.' using errcode = '42501'; end if;
+  if not public.is_admin_mfa() then raise exception 'Admin 2FA required.' using errcode = '42501'; end if;
   if p_status not in ('pending','approved','suspended') then raise exception 'Invalid status: %', p_status; end if;
   update public.organisers set status = p_status where id = p_id returning * into r;
   if r.id is null then raise exception 'Organiser not found.'; end if;
@@ -263,7 +280,7 @@ end; $$;
 create or replace function public.admin_set_event_image(p_id uuid, p_url text)
 returns void language plpgsql security definer set search_path = public as $$
 begin
-  if not public.is_admin() then raise exception 'Not authorised — you are not a LYNS admin.' using errcode = '42501'; end if;
+  if not public.is_admin_mfa() then raise exception 'Admin 2FA required.' using errcode = '42501'; end if;
   update public.events set image_url = p_url where id = p_id;
   if not found then raise exception 'Event not found.'; end if;
   perform public._log_admin('event:image', p_id, p_url);
@@ -273,7 +290,7 @@ create or replace function public.admin_delete_event(p_id uuid)
 returns void language plpgsql security definer set search_path = public as $$
 declare r public.events;
 begin
-  if not public.is_admin() then raise exception 'Not authorised — you are not a LYNS admin.' using errcode = '42501'; end if;
+  if not public.is_admin_mfa() then raise exception 'Admin 2FA required.' using errcode = '42501'; end if;
   delete from public.events where id = p_id returning * into r;
   if r.id is null then raise exception 'Event not found.'; end if;
   perform public._log_admin('event:deleted', p_id, r.title);
@@ -283,11 +300,6 @@ end; $$;
 drop policy if exists "admin updates any event"   on public.events;
 drop policy if exists "admin deletes event"       on public.events;
 drop policy if exists "admin updates profiles"    on public.organisers;
-
--- ---- 9. two-factor for admin ------------------------------------------
--- Run supabase/admin-mfa.sql after this — it swaps the admin checks above to
--- require a passed 2FA session (aal2), so the admin queue needs magic-link
--- sign-in PLUS a 6-digit authenticator code.
 
 -- ---- done — quick check --------------------------------------------------
 select
