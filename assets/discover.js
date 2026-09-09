@@ -95,7 +95,7 @@ function filteredList() {
 function subText(list) {
   const q = state.q.trim();
   if (q) return `${list.length} result${list.length === 1 ? "" : "s"} for “${esc(q)}”`;
-  if (state.date || state.residence || state.cat === RES_CAT) {
+  if (state.date || state.residence || state.cat !== "All") {
     const noun = state.cat === RES_CAT && !state.residence ? "residence event" : "thing";
     const where = state.residence ? ` at ${esc(state.residence)}` : "";
     const onDate = state.date ? new Date(state.date + "T00:00:00") : null;
@@ -115,7 +115,7 @@ function paintFeed() {
     host.innerHTML = list.length
       ? `<div class="feed">${list.map((e, i) => feedCardHTML(e, { saved: savedIds.has(e.id), open: state.open === e.id, index: i, onDate })).join("")}</div>`
       : (() => {
-          const filtered = state.date || state.residence || state.cat === RES_CAT;
+          const filtered = state.date || state.residence || state.cat !== "All";
           return emptyHTML(ICON_SEARCH,
             state.q ? "No matches" : filtered ? "Nothing to show" : "Nothing here yet",
             state.q ? "Try a different word, or clear the search." :
@@ -168,10 +168,10 @@ function renderDiscover() {
   const rp = document.getElementById("resPick");
   if (rp) rp.addEventListener("change", () => { state.residence = rp.value || null; state.open = null; renderDiscover(); });
 
-  const sb = document.getElementById("searchBox");
+  const sbox = document.getElementById("searchBox");
   const sc = document.getElementById("searchClear");
-  if (sb) sb.addEventListener("input", () => {
-    state.q = sb.value; state.open = null;
+  if (sbox) sbox.addEventListener("input", () => {
+    state.q = sbox.value; state.open = null;
     if (sc) sc.hidden = !state.q;
     paintFeed();
   });
@@ -251,7 +251,20 @@ document.querySelectorAll(".tabbar .tab[data-tab]").forEach((t) =>
 
 document.getElementById("loc").addEventListener("click", () => flash("More areas are coming soon"));
 
+// deep links: /?tab=saved, /?cat=Music, /?q=quiz  (used by the home-screen
+// shortcuts and by anything that shares a link into the app)
+function applyUrlState() {
+  const p = new URLSearchParams(location.search);
+  const tab = p.get("tab");
+  if (["discover", "saved", "post"].includes(tab)) state.tab = tab;
+  const cat = p.get("cat");
+  if (cat && [...CATS_WITH_ALL, RES_CAT].includes(cat)) state.cat = cat;
+  const q = p.get("q");
+  if (q) state.q = q;
+}
+
 (async function init() {
+  applyUrlState();
   render(); // paint shell immediately
   state.events = await loadEvents();
   render();
