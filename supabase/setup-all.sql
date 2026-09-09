@@ -187,6 +187,10 @@ from (values
 ) as v(organiser_id, title, category, starts_at, time_label, recurrence, venue, residence, price, description, reviewed_by)
 where not exists (select 1 from public.events e where e.title = v.title);
 
+-- ticket links we actually know (only fills blanks — never clobbers one you set)
+update public.events set ticket_url = 'https://woordfees.co.za'
+  where title = 'Stellenbosch Woordfees' and ticket_url is null;
+
 -- ---- 6. de-dupe anything left over from earlier runs --------------------
 delete from public.events e
 using (

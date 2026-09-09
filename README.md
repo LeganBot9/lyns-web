@@ -1,11 +1,16 @@
 # LYNS — web app
 
 A calm, minimal way to discover events and things to do around Stellenbosch.
+Live at **https://lynsapp.co.za** (Vercel project `lyns-webb`, Supabase ref
+`khjmlidomgwpyxdjhkwt`).
 
 - **`/`** — the public app. Discover feed + Saved (saved on the device, no account).
-- **`/organiser`** — organisers sign in, get verified by you, and submit events.
+  Deep links: `/?tab=saved`, `/?cat=Music`, `/?q=quiz`.
+- **`/organiser`** — organisers create an email + password account, get verified by you,
+  and submit events. Magic-link sign-in is kept as a fallback.
 - **`/admin`** — your review queue. Approve organisers, approve/decline events, post events
-  directly, take live events down. **Only accounts on the `admins` table can see anything here.**
+  directly, take live events down. **Locked to accounts on the `admins` table, and each
+  admin login also needs a TOTP code (see "Admin security" below).**
 
 Static frontend (no build step) + [Supabase](https://supabase.com) for auth, database and
 image storage. Deployed on [Vercel](https://vercel.com).
@@ -30,12 +35,12 @@ web/
    - *Project API keys → `anon` `public`* → `SUPABASE_ANON_KEY`
 4. Paste both into [`assets/config.js`](assets/config.js).
 5. **Authentication → URL Configuration:**
-   - *Site URL:* your Vercel URL (e.g. `https://lyns.vercel.app`) — use `http://localhost:3000`
-     while developing.
-   - *Redirect URLs:* add `https://YOUR-DOMAIN/organiser`, `https://YOUR-DOMAIN/admin`,
-     and the `http://localhost:3000/...` versions.
-6. **Authentication → Providers → Email:** make sure **Email** is on. "Confirm email" can stay on;
-   sign-in uses a magic link so no passwords are involved.
+   - *Site URL:* `https://lynsapp.co.za` — use `http://localhost:3000` while developing.
+   - *Redirect URLs:* add `https://lynsapp.co.za/**` (and `http://localhost:3000/**` for dev).
+6. **Authentication → Providers → Email:** make sure **Email** is on, and turn
+   **"Confirm email" OFF** — organisers sign up with email + password and are manually
+   approved anyway, so the confirmation round-trip is just friction. (Admins use a magic
+   link; organisers can also fall back to one.)
 
 ### Email / SMTP (do this before real testing)
 
@@ -80,26 +85,56 @@ auth redirects need a real origin.
 
 After `schema.sql`, just run **[`supabase/setup-all.sql`](supabase/setup-all.sql)** — it applies
 every later change at once (recurring-events column, residence column, organiser logo column,
-the security-advisor fixes, storage policies), **makes you the admin**, and loads the ~19
-Stellenbosch starter events. Safe to re-run; it won't duplicate anything. The admin UID is
-baked into that file — change it there if it's ever a different account.
+the security-advisor fixes, storage policies, auto-archive cron, the admin guard functions and
+the 2FA / factor-lock tables), **makes you the admin**, and loads the ~20 Stellenbosch starter
+events. The admin UID is baked into that file — change it there if it's ever a different account.
 
-The individual `migration-*.sql` / `seed.sql` / `dedupe.sql` files still exist if you want to
-apply changes piecemeal, but `setup-all.sql` covers all of them.
+**Safe to re-run.** Starter events use `INSERT … WHERE NOT EXISTS`, so a re-run never
+duplicates them and never overwrites a cover photo, time or venue you've since fixed from
+admin → Live. (To reload a starter event from scratch, delete it in admin first.)
+
+The individual `migration-*.sql` / `seed.sql` / `dedupe.sql` / `admin-mfa.sql` files still
+exist for piecemeal use, but `setup-all.sql` covers all of them.
 
 **Check every seeded time/venue against the source and fix from the admin "Live" tab** — they're
 best-effort from public listings.
+
+## Admin security
+
+`/admin` is gated three ways:
+
+1. **`admins` table** — RLS lets a signed-in user read only their own row, and there is no
+   insert policy, so admin can only be granted from the Supabase dashboard / SQL editor.
+2. **TOTP two-factor** — `is_admin_mfa()` requires the session to be `aal2`. It's enforced in
+   the RLS read policies *and* inside every `admin_*` write function, not just in the page.
+   First login walks you through authenticator enrolment; every login after asks for the code.
+3. **Factor lock** — `public.admin_mfa` records the first authenticator you ever verify. A
+   second authenticator someone adds later is rejected ("Blocked" screen). Clear that row from
+   the dashboard if you genuinely need to re-enrol.
+
+Recover a lost authenticator: Supabase → Authentication → Users → your user → remove the
+factor, then delete the `admin_mfa` row, then sign in and re-enrol.
+
+The `lynsStellie@gmail.com` inbox is the real front door — keep Google 2-Step Verification on
+for it.
 
 **How recurrence works:** an event stores one `starts_at` plus `recurrence` = `none` / `weekly`
 / `monthly`. The feed shows the next occurrence and keeps showing it — no cron, no duplicate
 rows. Times are stored in `Africa/Johannesburg`; the feed formats in the viewer's local zone
 (fine for SA, no daylight saving).
 
-## 5. Custom domain
+## 5. Custom domain — done
 
-Buy `lynsapp.co.za` (or `lyns.app`) — [domains.co.za](https://domains.co.za), Namecheap, Cloudflare.
-In Vercel: **Project → Settings → Domains →** add it and follow the DNS instructions. Then update
-the Supabase Site URL + Redirect URLs to the real domain.
+`lynsapp.co.za` is registered (domains.co.za) and pointed at Vercel. Supabase Site URL +
+Redirect URLs include `https://lynsapp.co.za/**`. If you ever move it: Vercel → Project →
+Settings → Domains, then update the Supabase auth URLs to match.
+
+## 6. Store apps
+
+Packaged for Google Play with PWABuilder → TWA. Android package id `za.co.lynsapp.twa`;
+`.well-known/assetlinks.json` holds the signing-key fingerprint so the installed app opens
+with no address bar. Listing assets (screenshots, feature graphic, copy) live in
+`../store-listing/`. See that folder's README.
 
 ---
 
