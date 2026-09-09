@@ -49,7 +49,7 @@ create policy "authenticated updates own folder" on storage.objects
 
 -- ---- 4. make you the admin ----------------------------------------------
 insert into public.admins (user_id)
-values ('3e2e5f4e-5141-4408-8970-48ca6f86dd8c')
+values ('f985f322-0ef1-48d7-a632-8aa72dcadf42')
 on conflict (user_id) do nothing;
 
 -- ---- 5. Stellenbosch starter events ------------------------------------
@@ -68,126 +68,126 @@ delete from public.events where title in (
 insert into public.events
   (organiser_id, title, category, starts_at, time_label, recurrence, venue, residence, price, description, status, reviewed_at, reviewed_by)
 values
-('3e2e5f4e-5141-4408-8970-48ca6f86dd8c','Casa Beer Run','Sport',
+('f985f322-0ef1-48d7-a632-8aa72dcadf42','Casa Beer Run','Sport',
   timezone('Africa/Johannesburg', (current_date + ((4 - extract(isodow from current_date)::int + 7) % 7)) + time '17:30'),
   null,'weekly','Casa',null,'Free',
   'A 5 km social run through town, then live music and cold drinks back at Casa. Come for the run or just the after-party.',
-  'approved', now(),'3e2e5f4e-5141-4408-8970-48ca6f86dd8c'),
+  'approved', now(),'f985f322-0ef1-48d7-a632-8aa72dcadf42'),
 
-('3e2e5f4e-5141-4408-8970-48ca6f86dd8c','Stellenbosch Coffee Run','Sport',
+('f985f322-0ef1-48d7-a632-8aa72dcadf42','Stellenbosch Coffee Run','Sport',
   timezone('Africa/Johannesburg', (current_date + ((3 - extract(isodow from current_date)::int + 7) % 7)) + time '17:00'),
   '17:00 for a 17:15 start','weekly','Sox / Mood Cafe (cnr Andringa & Dorp)',null,'Free',
   'Casual 5 km at conversation pace, then coffee and bagels at the finish. All paces welcome. Route on @stb_coffee_run.',
-  'approved', now(),'3e2e5f4e-5141-4408-8970-48ca6f86dd8c'),
+  'approved', now(),'f985f322-0ef1-48d7-a632-8aa72dcadf42'),
 
-('3e2e5f4e-5141-4408-8970-48ca6f86dd8c','Stellies Shakeout Trail Run','Sport',
+('f985f322-0ef1-48d7-a632-8aa72dcadf42','Stellies Shakeout Trail Run','Sport',
   timezone('Africa/Johannesburg', (current_date + ((4 - extract(isodow from current_date)::int + 7) % 7)) + time '18:00'),
   null,'weekly','Coetzenburg (meet at the track)',null,'Free',
   'Social trail run with the SSO crew — four pace groups so no one gets dropped. Free to join, everyone welcome. @stelliesshakeout.',
-  'approved', now(),'3e2e5f4e-5141-4408-8970-48ca6f86dd8c'),
+  'approved', now(),'f985f322-0ef1-48d7-a632-8aa72dcadf42'),
 
-('3e2e5f4e-5141-4408-8970-48ca6f86dd8c','Aandklas Quiz Night','Nightlife',
+('f985f322-0ef1-48d7-a632-8aa72dcadf42','Aandklas Quiz Night','Nightlife',
   timezone('Africa/Johannesburg', (current_date + ((4 - extract(isodow from current_date)::int + 7) % 7)) + time '20:00'),
   null,'weekly','Aandklas, 43a Bird Street',null,'Free',
   'Stellenbosch''s long-running Thursday pub quiz. Grab a team, get there early for a table, play for drinks.',
-  'approved', now(),'3e2e5f4e-5141-4408-8970-48ca6f86dd8c'),
+  'approved', now(),'f985f322-0ef1-48d7-a632-8aa72dcadf42'),
 
-('3e2e5f4e-5141-4408-8970-48ca6f86dd8c','De Warenmarkt Quiz','Nightlife',
+('f985f322-0ef1-48d7-a632-8aa72dcadf42','De Warenmarkt Quiz','Nightlife',
   timezone('Africa/Johannesburg', (current_date + ((3 - extract(isodow from current_date)::int + 7) % 7)) + time '20:30'),
   null,'weekly','De Warenmarkt, Ryneveld Street',null,'Free',
   'Midweek quiz in the food hall. It fills up fast — book a table ahead.',
-  'approved', now(),'3e2e5f4e-5141-4408-8970-48ca6f86dd8c'),
+  'approved', now(),'f985f322-0ef1-48d7-a632-8aa72dcadf42'),
 
-('3e2e5f4e-5141-4408-8970-48ca6f86dd8c','The Courtyard Cafe Quiz','Nightlife',
+('f985f322-0ef1-48d7-a632-8aa72dcadf42','The Courtyard Cafe Quiz','Nightlife',
   timezone('Africa/Johannesburg', (current_date + ((3 - extract(isodow from current_date)::int + 7) % 7)) + time '20:00'),
   null,'weekly','The Courtyard Cafe, Andringa Street',null,'Free',
   'Wednesday quiz with bar-tab and milkshake-shot prizes. Doors from 7, quiz at 8.',
-  'approved', now(),'3e2e5f4e-5141-4408-8970-48ca6f86dd8c'),
+  'approved', now(),'f985f322-0ef1-48d7-a632-8aa72dcadf42'),
 
-('3e2e5f4e-5141-4408-8970-48ca6f86dd8c','Versus Friday Run','Sport',
+('f985f322-0ef1-48d7-a632-8aa72dcadf42','Versus Friday Run','Sport',
   timezone('Africa/Johannesburg', (current_date + ((5 - extract(isodow from current_date)::int + 7) % 7)) + time '06:15'),
   null,'weekly','Versus, Bird Street',null,'Free',
   'A quick 5 km loop before work. All paces welcome, social from the first step.',
-  'approved', now(),'3e2e5f4e-5141-4408-8970-48ca6f86dd8c'),
+  'approved', now(),'f985f322-0ef1-48d7-a632-8aa72dcadf42'),
 
-('3e2e5f4e-5141-4408-8970-48ca6f86dd8c','Tuesday Time Trial','Sport',
+('f985f322-0ef1-48d7-a632-8aa72dcadf42','Tuesday Time Trial','Sport',
   timezone('Africa/Johannesburg', (current_date + ((2 - extract(isodow from current_date)::int + 7) % 7)) + time '18:00'),
   '2 km or 3 km','weekly','The Boord (end of Van Reede Street)',null,'Free',
   'Weekly time trial with Athletes Academy. Run your own watch and chase a PB.',
-  'approved', now(),'3e2e5f4e-5141-4408-8970-48ca6f86dd8c'),
+  'approved', now(),'f985f322-0ef1-48d7-a632-8aa72dcadf42'),
 
-('3e2e5f4e-5141-4408-8970-48ca6f86dd8c','Blaauwklippen Family Market','Markets',
+('f985f322-0ef1-48d7-a632-8aa72dcadf42','Blaauwklippen Family Market','Markets',
   timezone('Africa/Johannesburg', (current_date + ((7 - extract(isodow from current_date)::int + 7) % 7)) + time '10:00'),
   '10:00 – 15:00','weekly','Blaauwklippen Wine Estate',null,'Free entry',
   'Sunday market on the lawns: food stalls, makers, live acoustic music, and pony and tractor rides for kids.',
-  'approved', now(),'3e2e5f4e-5141-4408-8970-48ca6f86dd8c'),
+  'approved', now(),'f985f322-0ef1-48d7-a632-8aa72dcadf42'),
 
-('3e2e5f4e-5141-4408-8970-48ca6f86dd8c','Stellenbosch Slow Market','Markets',
+('f985f322-0ef1-48d7-a632-8aa72dcadf42','Stellenbosch Slow Market','Markets',
   timezone('Africa/Johannesburg', (current_date + ((6 - extract(isodow from current_date)::int + 7) % 7)) + time '09:00'),
   '09:00 – 14:00','weekly','Oude Libertas',null,'Free entry',
   'Saturday-morning market at Oude Libertas — coffee, pastries, seasonal produce and local makers under the oaks.',
-  'approved', now(),'3e2e5f4e-5141-4408-8970-48ca6f86dd8c'),
+  'approved', now(),'f985f322-0ef1-48d7-a632-8aa72dcadf42'),
 
-('3e2e5f4e-5141-4408-8970-48ca6f86dd8c','ClubPadel Social','Sport',
+('f985f322-0ef1-48d7-a632-8aa72dcadf42','ClubPadel Social','Sport',
   timezone('Africa/Johannesburg', (current_date + ((3 - extract(isodow from current_date)::int + 7) % 7)) + time '18:00'),
   null,'weekly','ClubPadel, Woodmill Lifestyle Centre',null,'Ticketed',
   'Open social padel — rotating doubles across the indoor courts, all levels. Student rates. Book your spot online.',
-  'approved', now(),'3e2e5f4e-5141-4408-8970-48ca6f86dd8c'),
+  'approved', now(),'f985f322-0ef1-48d7-a632-8aa72dcadf42'),
 
-('3e2e5f4e-5141-4408-8970-48ca6f86dd8c','Live Music at Daisy Jones','Music',
+('f985f322-0ef1-48d7-a632-8aa72dcadf42','Live Music at Daisy Jones','Music',
   timezone('Africa/Johannesburg', (current_date + ((6 - extract(isodow from current_date)::int + 7) % 7)) + time '20:00'),
   null,'weekly','The Daisy Jones Bar, Summerhill Wines',null,'Ticketed',
   'Live bands most weekends at one of the country''s favourite small venues. Check the line-up before you go.',
-  'approved', now(),'3e2e5f4e-5141-4408-8970-48ca6f86dd8c'),
+  'approved', now(),'f985f322-0ef1-48d7-a632-8aa72dcadf42'),
 
-('3e2e5f4e-5141-4408-8970-48ca6f86dd8c','First Thursdays Stellenbosch','Arts',
+('f985f322-0ef1-48d7-a632-8aa72dcadf42','First Thursdays Stellenbosch','Arts',
   timezone('Africa/Johannesburg', timestamp '2026-09-03 17:00'),
   '17:00 – 21:00','monthly','Church Street and around',null,'Free',
   'On the first Thursday of the month, galleries and shops stay open late. Start at the top of Church Street and wander down.',
-  'approved', now(),'3e2e5f4e-5141-4408-8970-48ca6f86dd8c'),
+  'approved', now(),'f985f322-0ef1-48d7-a632-8aa72dcadf42'),
 
-('3e2e5f4e-5141-4408-8970-48ca6f86dd8c','Run the Bosch Trail Run','Outdoors',
+('f985f322-0ef1-48d7-a632-8aa72dcadf42','Run the Bosch Trail Run','Outdoors',
   timezone('Africa/Johannesburg', timestamp '2026-09-06 07:00'),
   null,'monthly','Coetzenburg / Jonkershoek',null,'Ticketed',
   'Monthly guided trail run on the mountain. Distance and route are announced about a week before each one.',
-  'approved', now(),'3e2e5f4e-5141-4408-8970-48ca6f86dd8c'),
+  'approved', now(),'f985f322-0ef1-48d7-a632-8aa72dcadf42'),
 
-('3e2e5f4e-5141-4408-8970-48ca6f86dd8c','The Gratitude Run','Sport',
+('f985f322-0ef1-48d7-a632-8aa72dcadf42','The Gratitude Run','Sport',
   timezone('Africa/Johannesburg', timestamp '2026-09-24 17:30'),
   null,'none','Dornier Wines',null,'Ticketed',
   'Evening fun run through the vineyards at Dornier, with food and music at the finish. Entry online.',
-  'approved', now(),'3e2e5f4e-5141-4408-8970-48ca6f86dd8c'),
+  'approved', now(),'f985f322-0ef1-48d7-a632-8aa72dcadf42'),
 
-('3e2e5f4e-5141-4408-8970-48ca6f86dd8c','Christmas Lights Switch-On & Night Market','Markets',
+('f985f322-0ef1-48d7-a632-8aa72dcadf42','Christmas Lights Switch-On & Night Market','Markets',
   timezone('Africa/Johannesburg', timestamp '2026-10-02 18:00'),
   'from 18:00','none','Stellenbosch town centre',null,'Free',
   'The town Christmas lights go on, with a night market and food stalls down the main streets.',
-  'approved', now(),'3e2e5f4e-5141-4408-8970-48ca6f86dd8c'),
+  'approved', now(),'f985f322-0ef1-48d7-a632-8aa72dcadf42'),
 
-('3e2e5f4e-5141-4408-8970-48ca6f86dd8c','Stellenbosch Woordfees','Arts',
+('f985f322-0ef1-48d7-a632-8aa72dcadf42','Stellenbosch Woordfees','Arts',
   timezone('Africa/Johannesburg', timestamp '2026-10-09 10:00'),
   null,'none','Venues across Stellenbosch',null,'Ticketed',
   'Ten days of theatre, live music, talks, film and food across town. Full programme and tickets at woordfees.co.za.',
-  'approved', now(),'3e2e5f4e-5141-4408-8970-48ca6f86dd8c'),
+  'approved', now(),'f985f322-0ef1-48d7-a632-8aa72dcadf42'),
 
 -- residence events (show the Residence filter chip)
-('3e2e5f4e-5141-4408-8970-48ca6f86dd8c','Wilgenhof Serenade Practice','Music',
+('f985f322-0ef1-48d7-a632-8aa72dcadf42','Wilgenhof Serenade Practice','Music',
   timezone('Africa/Johannesburg', (current_date + ((2 - extract(isodow from current_date)::int + 7) % 7)) + time '19:30'),
   null,'weekly','Wilgenhof dining hall','Wilgenhof','Free',
   'Weekly serenade rehearsal, open to anyone in res who wants to sing. New voices always welcome.',
-  'approved', now(),'3e2e5f4e-5141-4408-8970-48ca6f86dd8c'),
+  'approved', now(),'f985f322-0ef1-48d7-a632-8aa72dcadf42'),
 
-('3e2e5f4e-5141-4408-8970-48ca6f86dd8c','Dagbreek vs Simonsberg','Sport',
+('f985f322-0ef1-48d7-a632-8aa72dcadf42','Dagbreek vs Simonsberg','Sport',
   timezone('Africa/Johannesburg', timestamp '2026-09-05 14:00'),
   null,'none','Coetzenburg B-field','Dagbreek','Free',
   'Inter-res rugby derby. Wear your colours, stands open an hour before kick-off.',
-  'approved', now(),'3e2e5f4e-5141-4408-8970-48ca6f86dd8c'),
+  'approved', now(),'f985f322-0ef1-48d7-a632-8aa72dcadf42'),
 
-('3e2e5f4e-5141-4408-8970-48ca6f86dd8c','Huis ten Bosch Open Mic','Arts',
+('f985f322-0ef1-48d7-a632-8aa72dcadf42','Huis ten Bosch Open Mic','Arts',
   timezone('Africa/Johannesburg', timestamp '2026-09-11 20:00'),
   null,'none','Huis ten Bosch common room','Huis ten Bosch','Free',
   'Music, poetry and stand-up from residents and guests. Sign up on the night.',
-  'approved', now(),'3e2e5f4e-5141-4408-8970-48ca6f86dd8c');
+  'approved', now(),'f985f322-0ef1-48d7-a632-8aa72dcadf42');
 
 -- ---- 6. de-dupe anything left over from earlier runs --------------------
 delete from public.events e
