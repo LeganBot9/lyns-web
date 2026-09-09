@@ -206,9 +206,14 @@ const BKM = `<svg viewBox="0 0 24 24" aria-hidden="true">
   <path class="fill" d="M6 4h12v16l-6-4-6 4z" fill="currentColor"/></svg>`;
 
 export function feedCardHTML(ev, { saved = false, open = false, index = 0, onDate = null } = {}) {
+  // "Get tickets" only when there's a real link; "just show up" only when it's
+  // genuinely free; otherwise say nothing and let the Cost line speak.
+  const looksFree = /^free\b/i.test(ev.price || "");
   const ticket = ev.ticket_url
     ? `<a class="btn solid" href="${esc(ev.ticket_url)}" target="_blank" rel="noopener">Get tickets</a>`
-    : `<span class="btn ghost">Free &mdash; just show up</span>`;
+    : looksFree
+    ? `<span class="btn ghost">Free &mdash; just show up</span>`
+    : "";
   const rt = recurTag(ev);
   const eyebrow = esc(ev.category)
     + (ev.residence ? ` &middot; <span class="res">${esc(ev.residence)}</span>` : "")

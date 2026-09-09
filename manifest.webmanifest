@@ -17,10 +17,16 @@
   "icons": [
     { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
+  "screenshots": [
+    { "src": "/store-assets/discover.jpg", "sizes": "1080x2337", "type": "image/jpeg", "form_factor": "narrow", "label": "Everything on around Stellenbosch" },
+    { "src": "/store-assets/day.jpg", "sizes": "1080x2337", "type": "image/jpeg", "form_factor": "narrow", "label": "Filter by any day" },
+    { "src": "/store-assets/saved.jpg", "sizes": "1080x2337", "type": "image/jpeg", "form_factor": "narrow", "label": "Save events to your phone" }
+  ],
   "shortcuts": [
-    { "name": "Saved", "url": "/?tab=saved" },
-    { "name": "Post an event", "url": "/organiser" }
+    { "name": "Saved", "short_name": "Saved", "url": "/?tab=saved" },
+    { "name": "Post an event", "short_name": "Post", "url": "/organiser" }
   ]
 }
