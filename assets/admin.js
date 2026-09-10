@@ -60,6 +60,8 @@ function screenNoAccess(user) {
 }
 
 // ---------- two-factor ----------
+const enrollKey = () => "lyns.mfa.enroll." + (state.user?.id || "");
+
 async function screenEnrollMfa() {
   nav.hidden = true;
   view.innerHTML = `<div class="center-wrap"><h1>Set up two-factor</h1>
@@ -70,27 +72,47 @@ async function screenEnrollMfa() {
   document.getElementById("signout").addEventListener("click", signOut);
 
   try {
-    // clear any half-finished factor so the key on screen is the only one that works
     const list = await sb.auth.mfa.listFactors();
-    for (const f of (list.data?.all || [])) {
-      if (f.factor_type === "totp" && f.status !== "verified") await sb.auth.mfa.unenroll({ factorId: f.id });
+    const unverified = (list.data?.all || []).filter(
+      (f) => f.factor_type === "totp" && f.status !== "verified"
+    );
+
+    // Reuse the enrolment we already showed this session — a page reload must NOT
+    // mint a new secret, or the code the user already scanned stops working.
+    let cached = null;
+    try { cached = JSON.parse(sessionStorage.getItem(enrollKey())); } catch {}
+
+    let factorId, secret, qr;
+    if (cached && unverified.some((f) => f.id === cached.factorId)) {
+      ({ factorId, secret, qr } = cached);
+      for (const f of unverified) {
+        if (f.id !== factorId) await sb.auth.mfa.unenroll({ factorId: f.id });
+      }
+    } else {
+      for (const f of unverified) await sb.auth.mfa.unenroll({ factorId: f.id });
+      const { data, error } = await sb.auth.mfa.enroll({
+        factorType: "totp", friendlyName: "LYNS admin " + Date.now(),
+      });
+      if (error) throw error;
+      factorId = data.id; secret = data.totp.secret; qr = data.totp.qr_code;
+      try { sessionStorage.setItem(enrollKey(), JSON.stringify({ factorId, secret, qr })); } catch {}
     }
-    const { data, error } = await sb.auth.mfa.enroll({ factorType: "totp", friendlyName: "LYNS admin " + Date.now() });
-    if (error) throw error;
 
     const box = document.getElementById("mfaBox");
     box.innerHTML = `
       <img id="mfaqr" alt="" width="180" height="180" style="background:#fff;border-radius:8px;padding:6px">
       <p class="muted-row">Or add it by hand — account "LYNS", key:</p>
-      <p><code style="font-size:15px;letter-spacing:1px;word-break:break-all">${esc(data.totp.secret)}</code></p>
+      <p><code style="font-size:15px;letter-spacing:1px;word-break:break-all">${esc(secret)}</code></p>
+      <p class="muted-row">Make sure your phone's date &amp; time is set to <strong>automatic</strong> —
+        a clock that's off by a minute makes every code fail.</p>
       <form id="mfaForm" style="width:100%">
         <div class="field"><label for="code">6-digit code from the app</label>
           <input id="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" maxlength="6" required autofocus></div>
         <button class="btn solid block" type="submit">Turn on two-factor</button>
       </form>`;
     // set the QR via JS — the data URI has quotes that break an inline src=""
-    box.querySelector("#mfaqr").src = data.totp.qr_code;
-    document.getElementById("mfaForm").addEventListener("submit", (e) => verifyCode(e, data.id));
+    box.querySelector("#mfaqr").src = qr;
+    document.getElementById("mfaForm").addEventListener("submit", (e) => verifyCode(e, factorId));
   } catch (err) {
     document.getElementById("mfaBox").innerHTML = `<p class="muted-row">${esc(err.message || "Couldn't start two-factor setup.")}</p>`;
   }
@@ -123,10 +145,13 @@ async function verifyCode(e, factorId) {
     if (ch.error) throw ch.error;
     const v = await sb.auth.mfa.verify({ factorId, challengeId: ch.data.id, code });
     if (v.error) throw v.error;
-    route();
+    // verify succeeded — this session IS aal2 now. Clear the enrolment cache and
+    // tell route() to trust it, rather than re-reading a JWT that may lag a beat.
+    try { sessionStorage.removeItem(enrollKey()); } catch {}
+    route({ justVerified: true });
   } catch (err) {
     flash(/invalid|incorrect/i.test(err.message || "")
-      ? "Wrong code. If you reloaded this page, the key changed — delete the LYNS entry in your app and add the key shown above again."
+      ? "That code was rejected. Check your phone's clock is on automatic, then enter the next code the app shows."
       : (err.message || "That code didn't work."));
     btn.disabled = false; btn.textContent = label;
     input.value = ""; input.focus();
@@ -404,7 +429,7 @@ nav.querySelectorAll(".tab").forEach((t) =>
 async function signOut() { await sb.auth.signOut(); route(); }
 
 // ---------- routing ----------
-async function route() {
+async function route(opts = {}) {
   const user = await currentUser();
   state.user = user;
   state.isAdmin = false;
@@ -429,7 +454,8 @@ async function route() {
   }
   const totp = (factors?.totp || []).find((f) => f.status === "verified");
   if (!totp) { screenEnrollMfa(); return; }
-  if (aal?.currentLevel !== "aal2") { screenVerifyMfa(totp.id); return; }
+  // trust a verify that just succeeded even if the refreshed JWT lags a beat
+  if (aal?.currentLevel !== "aal2" && !opts.justVerified) { screenVerifyMfa(totp.id); return; }
 
   // factor lock: only the first authenticator ever verified is accepted
   const lock = await sb.from("admin_mfa").select("factor_id").eq("user_id", user.id).maybeSingle();
