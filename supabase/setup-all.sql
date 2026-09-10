@@ -197,6 +197,7 @@ update public.events set ticket_url = 'https://woordfees.co.za'
 update public.events e set image_url = 'https://lynsapp.co.za/seed-images/' || m.file
 from (values
   ('De Warenmarkt Quiz',                        'warenmarkt-quiz.jpg'),
+  ('Stellenbosch Coffee Run',                   'coffee-run.jpg'),
   ('Aandklas Quiz Night',                       'aandklas-quiz.jpg'),
   ('Stellies Shakeout Trail Run',               'shakeout-trail-run.jpg'),
   ('Run the Bosch Trail Run',                   'run-the-bosch.jpg'),
