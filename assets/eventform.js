@@ -108,6 +108,34 @@ export function eventFormHTML({ submitLabel = "Submit for review" } = {}) {
   </form>`;
 }
 
+// The event form survives a reload (iOS drops the page when you open the photo
+// picker). Everything except the actual photo file is kept in sessionStorage
+// until the event is submitted.
+const DRAFT_KEY = "lyns.eventform.draft";
+const DRAFT_FIELDS = [
+  "title", "category", "d_day", "d_month", "d_year", "time", "recurrence",
+  "time_label", "venue", "residence", "free", "price", "description", "ticket_url",
+];
+export function clearEventDraft() {
+  try { sessionStorage.removeItem(DRAFT_KEY); } catch {}
+}
+function saveDraft(form) {
+  try {
+    const f = form.elements, out = {};
+    for (const name of DRAFT_FIELDS) if (f[name]) out[name] = f[name].value;
+    sessionStorage.setItem(DRAFT_KEY, JSON.stringify(out));
+  } catch {}
+}
+function loadDraft(form) {
+  let d = null;
+  try { d = JSON.parse(sessionStorage.getItem(DRAFT_KEY)); } catch {}
+  if (!d) return;
+  const f = form.elements;
+  for (const name of DRAFT_FIELDS) {
+    if (f[name] != null && d[name] != null && d[name] !== "") f[name].value = d[name];
+  }
+}
+
 export function bindEventForm(form) {
   // price: Free / Ticketed segmented toggle
   const free = form.querySelector("#ef-free");
@@ -125,7 +153,13 @@ export function bindEventForm(form) {
     });
     if (!isFree) price.focus();
   };
-  segs.forEach((s) => s.addEventListener("click", () => setMode(s.dataset.free === "1")));
+  segs.forEach((s) => s.addEventListener("click", () => { setMode(s.dataset.free === "1"); saveDraft(form); }));
+
+  // bring back a draft from before a reload, then keep it current as you type
+  loadDraft(form);
+  form.addEventListener("input", () => saveDraft(form));
+  form.addEventListener("change", () => saveDraft(form));
+
   setMode(free.value === "1");
 
   // cover photo preview

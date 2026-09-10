@@ -1,6 +1,6 @@
 import { sb } from "./supabase.js";
 import { esc, coverFor, whenShort, recurTag } from "./ui.js";
-import { eventFormHTML, bindEventForm, readEventForm, uploadCover } from "./eventform.js";
+import { eventFormHTML, bindEventForm, readEventForm, uploadCover, clearEventDraft } from "./eventform.js";
 import { photoField, bindPhotoField, uploadImage } from "./photo.js";
 
 const view = document.getElementById("view");
@@ -211,6 +211,7 @@ async function screenApproved(user) {
     });
     btn.disabled = false; btn.textContent = "Submit for review";
     if (error) { flash(error.message); return; }
+    clearEventDraft();
     form.reset(); bindEventForm(form);
     flash("Submitted for review");
     loadMine(user);
@@ -239,8 +240,16 @@ async function loadMine(user) {
 async function signOut() { await sb.auth.signOut(); route(); }
 
 // ---------- routing ----------
+// Supabase re-fires SIGNED_IN on token refresh / tab focus / returning from the
+// iOS photo picker. Re-rendering then would wipe a half-filled event form, so
+// only act on a real change of who's signed in.
+let authedUid = null;
+let routedOnce = false;
+
 async function route() {
   const user = await currentUser();
+  authedUid = user?.id || null;
+  routedOnce = true;
   if (!user) { screenLogin(); return; }
   const { data: prof, error } = await sb.from("organisers").select("*").eq("id", user.id).maybeSingle();
   if (error) { flash(error.message); }
@@ -250,8 +259,13 @@ async function route() {
   screenApproved(user);
 }
 
-sb.auth.onAuthStateChange((event) => {
+sb.auth.onAuthStateChange((event, session) => {
   if (event === "PASSWORD_RECOVERY") { screenNewPassword(); return; }
-  if (event === "SIGNED_IN" || event === "SIGNED_OUT") route();
+  if (event === "SIGNED_OUT") { authedUid = null; route(); return; }
+  if (event === "SIGNED_IN") {
+    const uid = session?.user?.id || null;
+    if (routedOnce && uid && uid === authedUid) return;
+    route();
+  }
 });
 route();

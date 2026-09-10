@@ -1,6 +1,6 @@
 import { sb } from "./supabase.js";
 import { esc, coverFor, whenLabel, whenShort, recurTag, startOfTodayISO } from "./ui.js";
-import { eventFormHTML, bindEventForm, readEventForm, uploadCover } from "./eventform.js";
+import { eventFormHTML, bindEventForm, readEventForm, uploadCover, clearEventDraft } from "./eventform.js";
 import { uploadImage } from "./photo.js";
 
 const view = document.getElementById("view");
@@ -322,6 +322,7 @@ function renderAdd() {
     });
     btn.disabled = false; btn.textContent = "Publish now";
     if (error) { flash(error.message); return; }
+    clearEventDraft();
     form.reset(); bindEventForm(form);
     flash("Published to the app");
   });
@@ -410,6 +411,8 @@ view.addEventListener("click", async (e) => {
       err = await setEventStatus(row.dataset.ev, map[act]);
       if (err) throw err;
       flash(act === "ev-approve" ? "Approved — it's live" : act === "ev-decline" ? "Declined" : "Taken down");
+      // after approving from the queue, switch to Live so you see it landed
+      if (act === "ev-approve") state.section = "live";
     }
     row.style.opacity = "0.35";
     setTimeout(renderSection, 350);
@@ -477,7 +480,17 @@ async function route(opts = {}) {
   renderSection();
 }
 
-sb.auth.onAuthStateChange((event) => {
-  if (event === "SIGNED_IN" || event === "SIGNED_OUT") route();
+// Supabase re-fires SIGNED_IN on token refresh / tab focus / returning from the
+// iOS photo picker. Re-routing then would wipe a half-filled form, so only act on
+// a real change of who's signed in.
+let authedUid = null;
+sb.auth.onAuthStateChange((event, session) => {
+  if (event === "SIGNED_OUT") { authedUid = null; route(); return; }
+  if (event === "SIGNED_IN") {
+    const uid = session?.user?.id || null;
+    if (uid && uid === authedUid && state.isAdmin) return;
+    authedUid = uid;
+    route();
+  }
 });
 route();
