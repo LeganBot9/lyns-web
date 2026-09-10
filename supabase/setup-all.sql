@@ -191,6 +191,23 @@ where not exists (select 1 from public.events e where e.title = v.title);
 update public.events set ticket_url = 'https://woordfees.co.za'
   where title = 'Stellenbosch Woordfees' and ticket_url is null;
 
+-- cover photos, served from the repo (web/seed-images/). Only fills events that
+-- have no photo yet, so a re-run never replaces one you've changed in admin.
+-- To swap any of these: admin -> Live -> "Change photo".
+update public.events e set image_url = 'https://lynsapp.co.za/seed-images/' || m.file
+from (values
+  ('De Warenmarkt Quiz',                        'warenmarkt-quiz.jpg'),
+  ('Aandklas Quiz Night',                       'aandklas-quiz.jpg'),
+  ('Stellies Shakeout Trail Run',               'shakeout-trail-run.jpg'),
+  ('Run the Bosch Trail Run',                   'run-the-bosch.jpg'),
+  ('The Gratitude Run',                         'gratitude-run.jpg'),
+  ('Christmas Lights Switch-On & Night Market', 'christmas-lights.jpg'),
+  ('Stellenbosch Slow Market',                  'slow-market.jpg'),
+  ('ClubPadel Social',                          'clubpadel-social.jpg'),
+  ('Live Music at Daisy Jones',                 'daisy-jones.jpg')
+) as m(title, file)
+where e.title = m.title and e.image_url is null;
+
 -- ---- 6. de-dupe anything left over from earlier runs --------------------
 delete from public.events e
 using (
