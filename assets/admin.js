@@ -307,6 +307,9 @@ function bindShell() {
 }
 
 function renderSection() {
+  // never show a section (or the nav) until the full gate has passed:
+  // signed in + on the admin list + 2FA verified + factor lock ok.
+  if (!state.isAdmin) { nav.hidden = true; route(); return; }
   nav.hidden = false;
   nav.querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t.dataset.section === state.section));
   if (state.section === "queue") renderQueue();
@@ -392,7 +395,11 @@ view.addEventListener("click", async (e) => {
 });
 
 nav.querySelectorAll(".tab").forEach((t) =>
-  t.addEventListener("click", () => { state.section = t.dataset.section; renderSection(); }));
+  t.addEventListener("click", () => {
+    if (!state.isAdmin) return;   // ignore taps until the gate has passed
+    state.section = t.dataset.section;
+    renderSection();
+  }));
 
 async function signOut() { await sb.auth.signOut(); route(); }
 
