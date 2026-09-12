@@ -465,6 +465,18 @@ drop policy if exists "admin updates any event"   on public.events;
 drop policy if exists "admin deletes event"       on public.events;
 drop policy if exists "admin updates profiles"    on public.organisers;
 
+-- ---- 10. organisers are trusted on signup — only events need your approval ----
+-- Only events go through a queue now. An organiser account works the moment
+-- it's created; nothing they submit is public until you approve that specific
+-- event. You can still Pause a bad-faith organiser from admin -> Queue at any
+-- time, which blocks them from submitting anything new.
+alter table public.organisers alter column status set default 'approved';
+drop policy if exists "organiser creates own profile" on public.organisers;
+create policy "organiser creates own profile" on public.organisers
+  for insert with check (auth.uid() = id and status = 'approved');
+-- let anyone already waiting in the old queue through
+update public.organisers set status = 'approved' where status = 'pending';
+
 -- ---- done — quick check --------------------------------------------------
 select
   (select count(*) from public.admins) as admins,

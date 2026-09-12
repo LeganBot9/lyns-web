@@ -21,7 +21,7 @@ async function currentUser() {
 // ---------- screens ----------
 const HEADS = {
   signin: ["Sign in", "Post your events to LYNS. Listing is free — every event is checked before it goes live."],
-  signup: ["Create an organiser account", "For venues and event organisers. We verify you before you can post."],
+  signup: ["Create an organiser account", "For venues and event organisers. Every event you submit is checked before it goes live."],
   forgot: ["Reset your password", "We'll email you a link to set a new one."],
   magic:  ["Sign in with a link", "We'll email you a one-time sign-in link — no password needed."],
 };
@@ -121,18 +121,18 @@ function screenNewPassword() {
 function screenProfile(user) {
   view.innerHTML = `
     <div class="view-head"><h1>Tell us who you are</h1>
-      <p>One-time details so we can verify you. Signed in as ${esc(user.email)}.</p></div>
+      <p>One-time details, then you're ready to post. Signed in as ${esc(user.email)}.</p></div>
     <form class="stack" id="profileForm" novalidate>
       <div class="field"><label for="p-name">Name or venue</label>
         <input id="p-name" name="name" required maxlength="80" placeholder="Bohemia / Jane Smith"></div>
-      ${photoField({ id: "logo", label: "Your photo or logo", hint: "(helps us verify you)" })}
+      ${photoField({ id: "logo", label: "Your photo or logo", hint: "(shown on your organiser profile)" })}
       <div class="field"><label for="p-phone">Phone</label>
         <input id="p-phone" name="phone" type="tel" placeholder="072 000 0000"></div>
-      <div class="field"><label for="p-ig">Instagram <span class="hint">(helps us verify you fast)</span></label>
+      <div class="field"><label for="p-ig">Instagram <span class="hint">(optional)</span></label>
         <input id="p-ig" name="instagram" placeholder="@yourvenue"></div>
       <div class="field"><label for="p-about">What kind of events do you run?</label>
         <textarea id="p-about" name="about" maxlength="240" placeholder="Weekly club nights at Bohemia."></textarea></div>
-      <button class="btn solid" type="submit" style="align-self:flex-start">Submit for verification</button>
+      <button class="btn solid" type="submit" style="align-self:flex-start">Continue</button>
     </form>
     <p class="muted-row" style="padding:0 22px 40px"><button id="signout">Sign out</button></p>`;
   document.getElementById("signout").addEventListener("click", signOut);
@@ -142,7 +142,7 @@ function screenProfile(user) {
     const f = e.target.elements;
     if (!f.name.value.trim()) return;
     const btn = e.target.querySelector("button[type=submit]");
-    btn.disabled = true; btn.textContent = "Submitting…";
+    btn.disabled = true; btn.textContent = "Saving…";
     let logo_url = null;
     if (logoField.file()) logo_url = await uploadImage(sb, "event-images", logoField.file(), user.id, "logo-");
     const { error } = await sb.from("organisers").insert({
@@ -154,7 +154,7 @@ function screenProfile(user) {
       about: f.about.value.trim() || null,
       logo_url,
     });
-    if (error) { flash(error.message); btn.disabled = false; btn.textContent = "Submit for verification"; return; }
+    if (error) { flash(error.message); btn.disabled = false; btn.textContent = "Continue"; return; }
     route();
   });
 }

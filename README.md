@@ -157,8 +157,8 @@ just sees "No access", and the API returns them nothing.
 
 | table | who can read | who can write |
 |---|---|---|
-| `events` | approved rows: everyone · own rows: organiser · all: admin | insert: approved organiser (as `pending`) or admin · update/delete: admin (organiser may edit own while `pending`) |
-| `organisers` | own row · all: admin | insert: self (as `pending`) · update: admin |
+| `events` | approved rows: everyone · own rows: organiser · all: admin | insert: any organiser (as `pending`) or admin · update/delete: admin (organiser may edit own while `pending`) |
+| `organisers` | own row · all: admin | insert: self (auto-`approved`) · update: admin |
 | `admins` | — | dashboard only |
 | storage `event-images` | public read | authenticated upload into own `{uid}/` folder |
 

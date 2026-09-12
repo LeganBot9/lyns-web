@@ -193,16 +193,19 @@ async function renderQueue() {
     (data || []).forEach((o) => { names[o.id] = o.name; });
   }
 
-  let html = `<div class="subhead">Organisers to action (${orgs.length})</div><div class="qlist">`;
-  html += orgs.length ? orgs.map(orgRow).join("") : `<p class="q-plain">Nothing to action.</p>`;
-  html += `</div>`;
-
-  html += `<div class="subhead">Events waiting (${evs.length})</div><div class="qlist">`;
+  // events first — that's the actual queue now; organisers are trusted on signup
+  let html = `<div class="subhead">Events waiting (${evs.length})</div><div class="qlist">`;
   html += evs.length ? evs.map((e) => eventRow(e, names[e.organiser_id] || "LYNS (direct)")).join("")
                      : `<p class="q-plain">No events to review.</p>`;
   html += `</div>`;
 
-  html += `<div class="subhead">Approved organisers (${liveOrgs.length})</div><div class="qlist">`;
+  if (orgs.length) {
+    html += `<div class="subhead">Paused organisers (${orgs.length})</div><div class="qlist">`;
+    html += orgs.map(orgRow).join("");
+    html += `</div>`;
+  }
+
+  html += `<div class="subhead">Organisers (${liveOrgs.length})</div><div class="qlist">`;
   html += liveOrgs.length ? liveOrgs.map(orgRow).join("") : `<p class="q-plain">None yet.</p>`;
   html += `</div>`;
   box.innerHTML = html;
